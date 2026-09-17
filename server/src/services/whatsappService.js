@@ -66,6 +66,65 @@ export async function sendWhatsAppRetestReminder({
     labName: "TAZ Diagnostic Laboratory & Diagnostic Centre"
   });
 
+  const ultramsgInstanceId = process.env.ULTRAMSG_INSTANCE_ID || settings.ultramsgInstanceId;
+  const ultramsgToken = process.env.ULTRAMSG_TOKEN || settings.ultramsgToken;
+
+  // UltraMsg API dispatch if credentials present
+  if (ultramsgInstanceId && ultramsgToken) {
+    try {
+      const url = `https://api.ultramsg.com/${ultramsgInstanceId}/messages/chat`;
+      const response = await axios.post(
+        url,
+        new URLSearchParams({
+          token: ultramsgToken,
+          to: formattedPhone,
+          body: messageText
+        }).toString(),
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          timeout: 15000
+        }
+      );
+
+      const messageId = response.data?.id || `wamid.ultramsg.${Date.now()}`;
+
+      const logEntry = {
+        id: Date.now(),
+        reminderId,
+        patientId,
+        phone: formattedPhone,
+        direction: "OUTBOUND",
+        messageBody: messageText,
+        status: response.data?.sent === "true" || response.data?.id ? "SENT" : "QUEUED",
+        whatsappMessageId: messageId,
+        rawPayload: response.data,
+        createdAt: new Date().toISOString()
+      };
+      db.messages = [logEntry, ...(db.messages || [])];
+      await saveDbAsync(db);
+
+      return {
+        success: true,
+        messageId,
+        mode: "LIVE_ULTRAMSG",
+        status: "SENT",
+        raw: response.data
+      };
+    } catch (error) {
+      const errorDetail =
+        error.response?.data?.error || error.message || "UltraMsg API request failed";
+
+      console.error("[UltraMsg API Error]:", errorDetail);
+
+      return {
+        success: false,
+        error: errorDetail,
+        mode: "LIVE_ULTRAMSG",
+        status: "FAILED"
+      };
+    }
+  }
+
   const isRealApiConfigured =
     !settings.testMode &&
     Boolean(settings.phoneNumberId) &&
