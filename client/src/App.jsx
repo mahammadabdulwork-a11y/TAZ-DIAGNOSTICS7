@@ -3712,7 +3712,6 @@ function Reports({ onToast }) {
                     <th>Result Value</th>
                     <th>Unit</th>
                     <th>Reference Range</th>
-                    <th>Observation</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3736,13 +3735,6 @@ function Reports({ onToast }) {
                         </td>
                         <td>{test.unit}</td>
                         <td>{test.reference}</td>
-                        <td>
-                          <span
-                            className={`badge ${val ? "active" : "pending"}`}
-                          >
-                            {val ? "Recorded" : "Awaiting Input"}
-                          </span>
-                        </td>
                       </tr>
                     );
                   })}
@@ -4014,11 +4006,10 @@ function Reports({ onToast }) {
                           <table>
                             <thead>
                               <tr>
-                                <th style={{ width: "32%", textAlign: "left", paddingLeft: "12px" }}>Test / Parameter Description</th>
-                                <th style={{ width: "18%", textAlign: "center" }}>Observed Value</th>
-                                <th style={{ width: "14%", textAlign: "center" }}>Unit</th>
-                                <th style={{ width: "24%", textAlign: "center" }}>Biological Ref. Range</th>
-                                <th style={{ width: "12%", textAlign: "center" }}>Status</th>
+                                <th style={{ width: "42%", textAlign: "left", paddingLeft: "12px" }}>Test / Parameter Description</th>
+                                <th style={{ width: "22%", textAlign: "center" }}>Observed Value</th>
+                                <th style={{ width: "16%", textAlign: "center" }}>Unit</th>
+                                <th style={{ width: "20%", textAlign: "center" }}>Biological Ref. Range</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4050,14 +4041,6 @@ function Reports({ onToast }) {
                                     </td>
                                     <td style={{ textAlign: "center", verticalAlign: "middle", fontSize: "12.5px" }}>
                                       {test.reference || "—"}
-                                    </td>
-                                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                                      <span
-                                        className="badge completed"
-                                        style={{ fontSize: "11.5px", fontWeight: 700, padding: "2.5px 8px", display: "inline-block" }}
-                                      >
-                                        Recorded
-                                      </span>
                                     </td>
                                   </tr>
                                 );
