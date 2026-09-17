@@ -4258,30 +4258,41 @@ function Messages({ onToast }) {
     onToast(`Message dispatched to ${pat.name} via ${form.channel}!`);
   }
 
-  async function sendAllDueReminders() {
-    const pendingList = messages.filter((m) => m.status !== "Sent");
-    if (!pendingList.length) {
-      onToast("No pending reminders due right now! All patient reminders are sent.");
-      return;
-    }
-
-    if (!confirm(`Send monthly WhatsApp retest reminders to all ${pendingList.length} pending patient(s) at once?`)) {
-      return;
-    }
-
-    let sentCount = 0;
-    for (const msg of pendingList) {
-      const cleanPhone = String(msg.phone || "").replace(/\D/g, "");
-      if (cleanPhone) {
-        await triggerWhatsAppSend(cleanPhone, msg.patient || "Patient", msg.message || msg.whatsappMessage);
-        sentCount++;
+  async function triggerBatchMonthlyReminders() {
+    onToast("Sending batch monthly WhatsApp retest reminders...");
+    try {
+      const res = await fetch("/api/reminders/process-due", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        onToast(`Batch complete: ${data.message}`);
+        return;
       }
+    } catch {
+      // Fallback local batch dispatch for all patients
     }
 
-    const updated = messages.map((m) => ({ ...m, status: "Sent" }));
-    setMessages(updated);
-    write(STORAGE.messages, updated);
-    onToast(`⚡ Bulk Dispatch Complete! Sent WhatsApp retest reminders to ${sentCount} patient(s)!`);
+    const allPatients = read(STORAGE.patients, []);
+    let count = 0;
+    allPatients.forEach((pat) => {
+      if (pat.phone) {
+        const testListStr = Array.isArray(pat.tests) && pat.tests.length > 0
+          ? pat.tests.map((t) => t.name || t).join(", ")
+          : "Routine Diagnostic Profile";
+
+        const msg = [
+          `Dear ${pat.name}, greetings from TAZ Diagnostic Laboratory.`,
+          `Your monthly diagnostic retest is due for routine check-up.`,
+          `Recommended Profile: ${testListStr}.`,
+          `Please visit our laboratory or reply to schedule a home sample collection.`,
+          `Contact: 040-24567890 | Thank you, TAZ Diagnostic Team.`
+        ].join("\n");
+
+        triggerWhatsAppSend(pat.phone, pat.name, msg);
+        count++;
+      }
+    });
+
+    onToast(`Dispatched batch monthly retest reminders to ${count} patients!`);
   }
 
   return (
@@ -4290,8 +4301,11 @@ function Messages({ onToast }) {
         title="Patient Messages & Reminders"
         subtitle="Manage automated and manual WhatsApp/SMS communication."
       >
-        <Button onClick={sendAllDueReminders} style={{ background: "#25D366", color: "#fff", border: "none" }}>
-          <MessageSquare size={16} /> ⚡ Send All Due Reminders (Bulk WhatsApp)
+        <Button
+          style={{ background: "#5b0a1a", color: "#fff", borderColor: "#3a0610" }}
+          onClick={triggerBatchMonthlyReminders}
+        >
+          <RefreshCw size={16} /> 🚀 Send Batch Monthly Reminders
         </Button>
         <Button primary onClick={() => setShowCompose(true)}>
           <Plus size={16} /> New Message
