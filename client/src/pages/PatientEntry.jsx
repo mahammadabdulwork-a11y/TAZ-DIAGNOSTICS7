@@ -566,14 +566,14 @@ export default function PatientEntry() {
               </label>
 
               <label>
-                Email
+                Email Address (Optional)
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) =>
                     update("email", e.target.value)
                   }
-                  placeholder="Optional email"
+                  placeholder="Optional (e.g. name@gmail.com)"
                 />
               </label>
 

@@ -4258,12 +4258,41 @@ function Messages({ onToast }) {
     onToast(`Message dispatched to ${pat.name} via ${form.channel}!`);
   }
 
+  async function sendAllDueReminders() {
+    const pendingList = messages.filter((m) => m.status !== "Sent");
+    if (!pendingList.length) {
+      onToast("No pending reminders due right now! All patient reminders are sent.");
+      return;
+    }
+
+    if (!confirm(`Send monthly WhatsApp retest reminders to all ${pendingList.length} pending patient(s) at once?`)) {
+      return;
+    }
+
+    let sentCount = 0;
+    for (const msg of pendingList) {
+      const cleanPhone = String(msg.phone || "").replace(/\D/g, "");
+      if (cleanPhone) {
+        await triggerWhatsAppSend(cleanPhone, msg.patient || "Patient", msg.message || msg.whatsappMessage);
+        sentCount++;
+      }
+    }
+
+    const updated = messages.map((m) => ({ ...m, status: "Sent" }));
+    setMessages(updated);
+    write(STORAGE.messages, updated);
+    onToast(`⚡ Bulk Dispatch Complete! Sent WhatsApp retest reminders to ${sentCount} patient(s)!`);
+  }
+
   return (
     <>
       <PageHeader
         title="Patient Messages & Reminders"
         subtitle="Manage automated and manual WhatsApp/SMS communication."
       >
+        <Button onClick={sendAllDueReminders} style={{ background: "#25D366", color: "#fff", border: "none" }}>
+          <MessageSquare size={16} /> ⚡ Send All Due Reminders (Bulk WhatsApp)
+        </Button>
         <Button primary onClick={() => setShowCompose(true)}>
           <Plus size={16} /> New Message
         </Button>
