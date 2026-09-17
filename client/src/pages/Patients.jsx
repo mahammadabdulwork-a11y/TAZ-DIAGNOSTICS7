@@ -17,6 +17,8 @@ import {
 
 const STORAGE_KEY = "taz_company_patients";
 
+import { scheduleMonthlyRetestReminder, calculateNextMonthlyDate } from "../utils/reminderHelper";
+
 const createPatientId = (patients) => {
   const numbers = patients
     .map((p) => parseInt(String(p.patientId || "").replace(/\D/g, ""), 10))
@@ -35,6 +37,7 @@ const emptyForm = {
   address: "",
   referredBy: "Self",
   dateOfBirth: "",
+  enableMonthlyReminder: true,
 };
 
 export default function Patients() {
@@ -109,14 +112,22 @@ export default function Patients() {
     }
 
     const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const nextReminderDate = calculateNextMonthlyDate(todayStr, 1);
 
     if (modal === "add") {
       const patient = {
         patientId: createPatientId(patients),
         ...form,
+        enableMonthlyReminder: Boolean(form.enableMonthlyReminder !== false),
+        nextReminderDate: calculateNextMonthlyDate(todayStr, 1),
         registeredAt: now.toISOString(),
         updatedAt: now.toISOString(),
       };
+
+      if (patient.enableMonthlyReminder) {
+        scheduleMonthlyRetestReminder(patient, 1);
+      }
 
       savePatients([patient, ...patients]);
     } else {

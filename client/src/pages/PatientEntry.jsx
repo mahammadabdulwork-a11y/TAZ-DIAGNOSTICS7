@@ -247,6 +247,8 @@ function generatePatientId() {
   return `PAT${String(next).padStart(3, "0")}`;
 }
 
+import { scheduleMonthlyRetestReminder, calculateNextMonthlyDate } from "../utils/reminderHelper";
+
 export default function PatientEntry() {
   const [tests, setTests] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -262,6 +264,8 @@ export default function PatientEntry() {
     referredBy: "",
     branch: "Main Branch",
     tests: [],
+    enableMonthlyReminder: true,
+    reminderFrequencyMonths: 1,
   });
 
   const [doctorOpen, setDoctorOpen] = useState(false);
@@ -405,6 +409,8 @@ export default function PatientEntry() {
       referredBy: "",
       branch: "Main Branch",
       tests: [],
+      enableMonthlyReminder: true,
+      reminderFrequencyMonths: 1,
     });
 
     setDoctorSearch("");
@@ -432,6 +438,8 @@ export default function PatientEntry() {
     }
 
     const patients = loadPatients();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const nextReminderDate = calculateNextMonthlyDate(todayStr, form.reminderFrequencyMonths || 1);
 
     const patient = {
       ...form,
@@ -450,9 +458,17 @@ export default function PatientEntry() {
           }
         : "",
       tests: form.tests,
+      enableMonthlyReminder: Boolean(form.enableMonthlyReminder),
+      reminderFrequencyMonths: Number(form.reminderFrequencyMonths || 1),
+      nextReminderDate: form.enableMonthlyReminder ? nextReminderDate : null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    let reminderRecord = null;
+    if (patient.enableMonthlyReminder) {
+      reminderRecord = scheduleMonthlyRetestReminder(patient, patient.reminderFrequencyMonths);
+    }
 
     const updated = [...patients, patient];
 
@@ -461,9 +477,12 @@ export default function PatientEntry() {
       JSON.stringify(updated)
     );
 
-    alert(
-      `Patient saved successfully.\nPatient ID: ${patient.id}\nTests Added: ${patient.tests.length}`
-    );
+    let msg = `Patient registered & saved successfully!\nPatient ID: ${patient.id}\nTests Added: ${patient.tests.length}`;
+    if (reminderRecord) {
+      msg += `\n\n📅 Monthly WhatsApp Retest Reminder Scheduled!\nPhone: ${patient.phone}\nFirst Retest Date: ${reminderRecord.nextReminderDate}`;
+    }
+
+    alert(msg);
 
     clearForm();
   };
@@ -568,6 +587,51 @@ export default function PatientEntry() {
                   placeholder="Patient address"
                 />
               </label>
+
+              <div className="pe-full" style={{
+                background: "linear-gradient(135deg, #fdf5f7, #f7e8ec)",
+                border: "1.5px solid #e5bdc7",
+                borderRadius: "12px",
+                padding: "16px 18px",
+                marginTop: "10px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 700, color: "#5b0a1a", cursor: "pointer", fontSize: "14px" }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.enableMonthlyReminder)}
+                      onChange={(e) => update("enableMonthlyReminder", e.target.checked)}
+                      style={{ width: "18px", height: "18px", accentColor: "#5b0a1a" }}
+                    />
+                    💬 Auto-Schedule Monthly WhatsApp Retest Reminders
+                  </label>
+
+                  {form.enableMonthlyReminder && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "12.5px", color: "#6e3b47", fontWeight: 600 }}>Frequency:</span>
+                      <select
+                        value={form.reminderFrequencyMonths}
+                        onChange={(e) => update("reminderFrequencyMonths", Number(e.target.value))}
+                        style={{ padding: "5px 10px", borderRadius: "6px", border: "1px solid #d4a9b5", background: "#fff", fontSize: "13px", fontWeight: 600, color: "#4a0614" }}
+                      >
+                        <option value={1}>Every 1 Month (Monthly)</option>
+                        <option value={2}>Every 2 Months</option>
+                        <option value={3}>Every 3 Months (Quarterly)</option>
+                        <option value={6}>Every 6 Months (Half-Yearly)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {form.enableMonthlyReminder && (
+                  <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px dashed #dcaab7", fontSize: "12.5px", color: "#7a2a3b", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>📅</span>
+                    <span>
+                      <strong>First Reminder Date:</strong> {calculateNextMonthlyDate(new Date().toISOString().slice(0, 10), form.reminderFrequencyMonths || 1)} via WhatsApp to <strong>{form.phone || "(Enter Phone Number)"}</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
