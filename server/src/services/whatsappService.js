@@ -26,21 +26,15 @@ export function buildTemplateMessageText({
   patientName,
   previousTestDate,
   testList,
-  labName = "TAZ Diagnostic Laboratory & Diagnostic Centre"
+  labName = "TAZ Diagnostic Laboratory"
 }) {
-  return (
-    `Hello ${patientName},\n\n` +
-    `This is a reminder from ${labName}.\n\n` +
-    `Your previous laboratory tests were performed on ${previousTestDate}.\n\n` +
-    `Your previous tests:\n` +
-    `${testList}\n\n` +
-    `It is time for your monthly retest/check-up.\n\n` +
-    `Please visit our laboratory for your repeat tests.\n\n` +
-    `For assistance, please contact us at 040-24567890.\n\n` +
-    `Thank you,\n` +
-    `TAZ Diagnostic\n` +
-    `Reply STOP to unsubscribe from automated monthly reminders.`
-  );
+  return [
+    `Dear ${patientName}, greetings from ${labName}.`,
+    `Your monthly diagnostic retest is due for routine check-up.`,
+    `Recommended Profile: ${testList || "Routine Diagnostic Profile"}.`,
+    `Please visit our laboratory or reply to schedule a home sample collection.`,
+    `Contact: 040-24567890 | Thank you, TAZ Diagnostic Team.`
+  ].join("\n");
 }
 
 /**

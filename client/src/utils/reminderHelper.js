@@ -48,6 +48,14 @@ export function scheduleMonthlyRetestReminder(patientData, frequencyMonths = 1) 
 
   const reminderId = `REM-${patientId}-${Date.now().toString().slice(-4)}`;
 
+  const fiveLineMessage = [
+    `Dear ${name}, greetings from TAZ Diagnostic Laboratory.`,
+    `Your monthly diagnostic retest is due on ${formatFriendlyDate(nextReminderDate)}.`,
+    `Recommended Profile: ${testListStr}.`,
+    `Please visit our laboratory or reply to schedule a home sample collection.`,
+    `Contact: 040-24567890 | Thank you, TAZ Diagnostic Team.`
+  ].join("\n");
+
   const reminderRecord = {
     id: reminderId,
     patientId,
@@ -60,7 +68,7 @@ export function scheduleMonthlyRetestReminder(patientData, frequencyMonths = 1) 
     status: "SCHEDULED",
     optIn: true,
     channel: "WhatsApp",
-    whatsappMessage: `Dear ${name}, this is a gentle reminder from TAZ DIAGNOSTIC: Your monthly routine diagnostic retest (${testListStr}) is due on ${formatFriendlyDate(nextReminderDate)}. Please visit our lab or reply to book a home sample collection!`,
+    whatsappMessage: fiveLineMessage,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
