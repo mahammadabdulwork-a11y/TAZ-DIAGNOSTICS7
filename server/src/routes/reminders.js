@@ -97,6 +97,35 @@ router.post("/register", async (req, res) => {
 });
 
 /**
+ * POST /api/reminders/send-direct - Instantly send a WhatsApp message to any phone number
+ */
+router.post("/send-direct", async (req, res) => {
+  try {
+    const { phone, patientName, message } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, error: "Phone number is required" });
+    }
+
+    const result = await sendWhatsAppRetestReminder({
+      phone,
+      patientName: patientName || "Patient",
+      previousTestDate: new Date().toISOString().slice(0, 10),
+      testList: message || "Routine Diagnostic Retest",
+      reminderId: `MSG-${Date.now()}`,
+      patientId: "PAT-DIRECT"
+    });
+
+    res.json({
+      success: true,
+      message: "WhatsApp message dispatched successfully",
+      result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/reminders/process-due - Run automated due check immediately
  */
 router.post("/process-due", async (_req, res) => {

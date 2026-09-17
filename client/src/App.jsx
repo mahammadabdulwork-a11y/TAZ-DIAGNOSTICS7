@@ -4165,17 +4165,50 @@ function Messages({ onToast }) {
     return true;
   });
 
+  async function triggerWhatsAppSend(phone, name, messageBody) {
+    if (!phone) return;
+    const cleanPhone = String(phone).replace(/\D/g, "");
+
+    // 1. Trigger backend Express API -> UltraMsg live send
+    try {
+      await fetch("/api/reminders/send-direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          patientName: name || "Patient",
+          message: messageBody
+        })
+      });
+    } catch (err) {
+      console.warn("Backend UltraMsg API dispatch fallback:", err);
+    }
+
+    // 2. Open WhatsApp Web direct link as instant fallback / confirmation
+    const encoded = encodeURIComponent(messageBody);
+    window.open(`https://wa.me/${cleanPhone.length === 10 ? "91" + cleanPhone : cleanPhone}?text=${encoded}`, "_blank");
+  }
+
   function markSent(id) {
+    const target = messages.find((m) => m.id === id);
+    if (target) {
+      triggerWhatsAppSend(target.phone, target.patient, target.message || target.whatsappMessage);
+    }
+
     const next = messages.map((message) =>
       message.id === id ? { ...message, status: "Sent" } : message
     );
     setMessages(next);
     write(STORAGE.messages, next);
-    onToast("Message dispatched successfully!");
+    onToast("WhatsApp message dispatched!");
   }
 
   function resend(id) {
-    onToast("Message re-sent to patient channel.");
+    const target = messages.find((m) => m.id === id);
+    if (target) {
+      triggerWhatsAppSend(target.phone, target.patient, target.message || target.whatsappMessage);
+    }
+    onToast("Message re-sent to patient phone!");
   }
 
   function remove(id) {
@@ -4215,6 +4248,8 @@ function Messages({ onToast }) {
       date: today(),
       status: "Sent",
     };
+
+    triggerWhatsAppSend(pat.phone, pat.name, body);
 
     const next = [newMsg, ...messages];
     setMessages(next);
