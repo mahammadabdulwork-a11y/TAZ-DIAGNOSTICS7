@@ -17,6 +17,17 @@ import {
   UserRound,
   FlaskConical,
   RefreshCw,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  ShieldCheck,
+  Users,
+  CreditCard,
+  User,
+  Calendar,
+  Activity,
+  Stethoscope,
 } from "lucide-react";
 
 const REPORT_KEY = "taz_company_reports";
@@ -232,6 +243,21 @@ function formatDateInput(value) {
   return d.toISOString().slice(0, 10);
 }
 
+function formatLabDate(dateStr) {
+  if (!dateStr) return "21-Sep-2026";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const mon = months[d.getMonth()];
+    const yr = d.getFullYear();
+    return `${day}-${mon}-${yr}`;
+  } catch {
+    return dateStr;
+  }
+}
+
 function generateId(items, prefix) {
   let max = 0;
 
@@ -411,18 +437,20 @@ function buildReportHtml(report) {
 <html>
 <head>
 <meta charset="UTF-8">
-<title>${escapeHtml(report.reportId)} - ${escapeHtml(
-    report.patientName
+<title>${escapeHtml(report.reportId || "Report")} - ${escapeHtml(
+    report.patientName || "Patient"
   )}</title>
 
 <style>
 @page {
-  size: A4;
-  margin: 12mm 12mm 16mm 12mm;
+  size: A4 portrait;
+  margin: 8mm 10mm 10mm 10mm;
 }
 
 * {
   box-sizing: border-box;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 html,
@@ -432,169 +460,417 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   color: #26030b;
   background: #ffffff;
-  font-size: 12px;
-}
-
-body {
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+  font-size: 11.5px;
 }
 
 .report-page {
   width: 100%;
-  min-height: 100%;
   position: relative;
 }
 
-.report-header {
-  border-bottom: 3px solid #5b0a1a;
-  padding-bottom: 12px;
-  margin-bottom: 14px;
-}
-
-.header-grid {
-  display: grid;
-  grid-template-columns: 110px 1fr 120px;
+/* 1. TOP MAROON BAR */
+.taz-ref-top-bar {
+  display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  width: 100%;
+  height: 32px;
+  margin-bottom: 6px;
 }
 
-.qr-box {
-  width: 92px;
-  height: 92px;
-  border: 1px solid #d9c5ca;
-  border-radius: 6px;
+.taz-ref-top-left-tab {
+  background: #670b1e;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 14px 0 12px;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 100%, 0 100%);
+  min-width: 250px;
+}
+
+.taz-ref-top-left-title {
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.taz-ref-top-left-line {
+  flex: 1;
+  height: 1.2px;
+  background: rgba(255, 255, 255, 0.7);
+  margin-left: 10px;
+  margin-right: 12px;
+}
+
+.taz-ref-top-center-motto {
+  color: #670b1e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.8px;
+  text-transform: uppercase;
+  text-align: center;
+  flex: 1;
+  padding: 0 10px;
+}
+
+.taz-ref-top-right-tab {
+  background: #670b1e;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px 0 20px;
+  clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
+  min-width: 170px;
+}
+
+.taz-ref-page-pill {
+  border: 1.2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 14px;
+  padding: 2px 12px;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* 2. MIDDLE SECTION */
+.taz-ref-middle-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 0 6px 0;
+}
+
+.taz-ref-brand-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1.25;
+}
+
+.taz-ref-swirl-wrapper {
+  width: 78px;
+  height: 78px;
+  flex-shrink: 0;
+}
+
+.taz-ref-swirl-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.taz-ref-brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.taz-ref-brand-name {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.taz-ref-brand-name .taz-bold {
+  color: #670b1e;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.taz-ref-brand-name .taz-reg {
+  color: #670b1e;
+  font-size: 13px;
+  font-weight: 700;
+  margin-left: 2px;
+  vertical-align: super;
+}
+
+.taz-ref-diag-title {
+  color: #1a1a1a;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 7px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.taz-ref-centre-sub {
+  color: #670b1e;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  margin-top: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #d4b5bc;
+}
+
+.taz-ref-accreditation {
+  color: #4a0614;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.taz-ref-vdivider {
+  width: 1px;
+  height: 72px;
+  background: #e2c6cc;
+  margin: 0 10px;
+  flex-shrink: 0;
+}
+
+.taz-ref-contact-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1.15;
+}
+
+.taz-ref-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  color: #333333;
+}
+
+.taz-ref-icon-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #670b1e;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
-}
-
-.qr-box img {
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
-}
-
-.brand {
-  text-align: center;
-}
-
-.brand h1 {
-  margin: 0;
-  color: #5b0a1a;
-  font-size: 29px;
-  letter-spacing: 1px;
-  font-weight: 800;
-}
-
-.brand h2 {
-  margin: 6px 0 0;
-  color: #5b0a1a;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.brand p {
-  margin: 5px 0 0;
-  color: #555;
+  flex-shrink: 0;
   font-size: 10px;
 }
 
-.logo-box {
-  text-align: right;
+.taz-ref-phone-text, .taz-ref-email-text {
+  font-weight: 700;
+  color: #222222;
 }
 
-.logo-box img {
-  width: 110px;
-  max-height: 70px;
-  object-fit: contain;
+.taz-ref-address-text {
+  font-size: 8px;
+  line-height: 1.25;
+  color: #444444;
 }
 
-.logo-title {
-  color: #5b0a1a;
+.taz-ref-badge-247 {
+  font-size: 8.5px;
   font-weight: 800;
-  font-size: 13px;
-  margin-top: 4px;
+  color: #670b1e;
 }
 
-.meta-strip {
-  margin-top: 10px;
-  padding: 7px 10px;
-  background: #f8edf0;
-  border: 1px solid #ead5da;
+.taz-ref-trust-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0.8;
+  padding-left: 6px;
+}
+
+.taz-ref-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.taz-ref-trust-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 8px;
+  font-weight: 800;
+  color: #5b0717;
+  line-height: 1.15;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* 3. INVESTIGATION BANNER */
+.taz-ref-banner {
+  background: linear-gradient(90deg, #5b0717 0%, #6f0c22 45%, #7a1126 65%, #4e0613 100%);
+  border-radius: 6px;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  margin: 6px 0 14px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.taz-ref-banner-icon-box {
+  width: 26px;
+  height: 28px;
+  border: 1.5px solid #ffffff;
   border-radius: 4px;
   display: flex;
-  justify-content: space-between;
-  font-size: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
 }
 
-.patient-heading {
-  color: #5b0a1a;
-  font-size: 14px;
-  font-weight: 800;
-  margin: 14px 0 7px;
+.taz-ref-banner-vrule {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.4);
+  margin: 0 10px;
+  flex-shrink: 0;
+}
+
+.taz-ref-banner-text-block {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.taz-ref-banner-title {
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 1.3px;
   text-transform: uppercase;
-  letter-spacing: .5px;
 }
 
-.patient-info {
-  border: 1px solid #d9c5ca;
-  border-radius: 5px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.info-left,
-.info-right {
-  padding: 8px 12px;
-}
-
-.info-left {
-  border-right: 1px solid #e1d4d7;
-}
-
-.info-left > div,
-.info-right > div {
-  display: grid;
-  grid-template-columns: 125px 1fr;
-  padding: 4px 0;
-  border-bottom: 1px dotted #ddd;
-}
-
-.info-left > div:last-child,
-.info-right > div:last-child {
-  border-bottom: 0;
-}
-
-.info-left span,
-.info-right span {
-  color: #666;
-  font-weight: 600;
-}
-
-.info-left strong,
-.info-right strong {
-  color: #1e1014;
-}
-
-.section-title {
-  color: #5b0a1a;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 800;
-  margin: 15px 0 8px;
+.taz-ref-banner-subtitle {
+  color: #f7d1d8;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
   text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* 4. PATIENT INFORMATION CARD */
+.taz-ref-patient-card {
+  background: #f8f5f6;
+  border: 1.2px solid #e7dcde;
+  border-radius: 6px;
+  padding: 13px 16px 9px 16px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.taz-ref-patient-tab {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  background: #670b1e;
+  color: #ffffff;
+  padding: 3px 12px 3px 10px;
+  border-radius: 6px 12px 12px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-.section-line {
-  height: 2px;
-  background: #5b0a1a;
+.taz-ref-patient-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  margin-bottom: 10px;
+}
+
+.taz-ref-pi-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.taz-ref-pi-vdivider {
+  width: 1px;
+  height: 76px;
+  background: #ebd8db;
+  margin: 0 14px;
+  flex-shrink: 0;
+}
+
+.taz-ref-pi-row {
+  display: flex;
+  align-items: center;
+  font-size: 10.5px;
+  color: #222222;
+  line-height: 1.45;
+}
+
+.taz-ref-pi-icon {
+  color: #670b1e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.taz-ref-pi-name {
+  color: #670b1e;
+  font-weight: 700;
+  width: 84px;
+  flex-shrink: 0;
+}
+
+.taz-ref-pi-colon {
+  color: #670b1e;
+  font-weight: 700;
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+.taz-ref-pi-val {
+  color: #111111;
+  flex: 1;
+}
+
+.taz-ref-pi-val.bold-name,
+.taz-ref-pi-val.bold-code {
+  font-weight: 800;
+  color: #000000;
+}
+
+.taz-ref-status-badge {
+  display: inline-block;
+  padding: 1.5px 12px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.taz-ref-status-badge.pending {
+  background: #f5dcdc;
+  color: #7b1325;
+}
+
+.taz-ref-status-badge.completed {
+  background: #e6f9ed;
+  color: #137333;
+}
+
+.taz-ref-bottom-accent-bar {
+  height: 3.5px;
+  background: #670b1e;
+  width: 100%;
+  margin-top: 6px;
+  margin-bottom: 12px;
 }
 
 .test-table {
@@ -717,42 +993,213 @@ body {
 <body>
 <div class="report-page">
 
-  <div class="report-header">
-    <div class="header-grid">
-
-      <div class="qr-box">
-        <img src="${qr}" alt="Patient QR Code">
-      </div>
-
-      <div class="brand">
-        <h1>TAZ DIAGNOSTIC</h1>
-        <h2>Laboratory Diagnostic Report</h2>
-        <p>Accurate • Reliable • Trusted Laboratory Services</p>
-      </div>
-
-      <div class="logo-box">
-        <img src="${LOGO_URL}" alt="TAZ Diagnostic Logo">
-        <div class="logo-title">TAZ DIAGNOSTIC</div>
-      </div>
-
+  <!-- 1. TOP MAROON BAR -->
+  <div class="taz-ref-top-bar">
+    <div class="taz-ref-top-left-tab">
+      <span class="taz-ref-top-left-title">LAB REPORT</span>
+      <span class="taz-ref-top-left-line"></span>
     </div>
-
-    <div class="meta-strip">
-      <span>Report: <strong>${escapeHtml(
-        report.reportId || "-"
-      )}</strong></span>
-      <span>Patient: <strong>${escapeHtml(
-        report.patientName || "-"
-      )}</strong></span>
-      <span>Date: <strong>${escapeHtml(
-        formatDate(report.date)
-      )}</strong></span>
+    <div class="taz-ref-top-center-motto">
+      ACCURACY &nbsp;|&nbsp; TRUST &nbsp;|&nbsp; CARE
+    </div>
+    <div class="taz-ref-top-right-tab">
+      <div class="taz-ref-page-pill">
+        PAGE 1 OF 1
+      </div>
     </div>
   </div>
 
-  <div class="patient-heading">Patient Information</div>
+  <!-- 2. MAIN BRAND & CONTACT & TRUST SECTION -->
+  <div class="taz-ref-middle-section">
+    <!-- Left: Brand Logo & Title -->
+    <div class="taz-ref-brand-col">
+      <div class="taz-ref-swirl-wrapper">
+        <svg viewBox="0 0 100 100" class="taz-ref-swirl-svg">
+          <defs>
+            <clipPath id="microClip-print">
+              <circle cx="50" cy="50" r="33" />
+            </clipPath>
+          </defs>
+          <path
+            d="M 50 3 A 47 47 0 0 1 97 50 A 47 47 0 0 1 50 97 C 22 97 4 75 4 48 C 4 39 7 30 12 23 C 9 32 11 43 17 50 C 24 60 36 65 49 65 C 60 65 69 61 75 54 C 81 47 83 37 80 27 C 76 15 64 7 50 7 C 42 7 34 10 27 15 C 33 7 41 3 50 3 Z"
+            fill="#670b1e"
+          />
+          <path
+            d="M 6 48 C 6 29 18 14 34 8 C 22 14 14 26 14 41 C 14 59 29 74 47 74 C 61 74 73 65 78 53 C 73 68 59 79 42 79 C 22 79 6 66 6 48 Z"
+            fill="#861229"
+          />
+          <circle cx="50" cy="50" r="33" fill="#ffffff" stroke="#670b1e" stroke-width="1.2" />
+          <image
+            href="/microscope.jpg"
+            x="22"
+            y="19"
+            width="56"
+            height="62"
+            preserveAspectRatio="xMidYMid meet"
+            clip-path="url(#microClip-print)"
+          />
+        </svg>
+      </div>
 
-  ${patientInfo}
+      <div class="taz-ref-brand-info">
+        <div class="taz-ref-brand-name">
+          <span class="taz-bold">TAZ</span>
+          <span class="taz-reg">®</span>
+        </div>
+        <div class="taz-ref-diag-title">D I A G N O S T I C</div>
+        <div class="taz-ref-centre-sub">LABORATORY &amp; DIAGNOSTIC CENTRE</div>
+        <div class="taz-ref-accreditation">NABL ACCREDITED MEDICAL LAB &nbsp;|&nbsp; ISO 9001:2015</div>
+      </div>
+    </div>
+
+    <div class="taz-ref-vdivider"></div>
+
+    <!-- Center: Contact Info -->
+    <div class="taz-ref-contact-col">
+      <div class="taz-ref-contact-item">
+        <div class="taz-ref-icon-circle">📞</div>
+        <span class="taz-ref-phone-text">9440985131</span>
+      </div>
+
+      <div class="taz-ref-contact-item">
+        <div class="taz-ref-icon-circle">✉</div>
+        <span class="taz-ref-email-text">tazdiagnostic@gmail.com</span>
+      </div>
+
+      <div class="taz-ref-contact-item" style="align-items: flex-start;">
+        <div class="taz-ref-icon-circle" style="margin-top: 1px;">📍</div>
+        <div class="taz-ref-address-text">
+          Dr No: 8-200 RAJKUMAR SILKS,<br />
+          Near Raj Kumar Silks Street, Main Road,<br />
+          Tallapudi, Rajahmundry - 534341, Andhra Pradesh
+        </div>
+      </div>
+
+      <div class="taz-ref-contact-item">
+        <div class="taz-ref-icon-circle">⏱</div>
+        <span class="taz-ref-badge-247">24/7 Computerized Automated Lab</span>
+      </div>
+    </div>
+
+    <div class="taz-ref-vdivider"></div>
+
+    <!-- Right: Trust Badges -->
+    <div class="taz-ref-trust-col">
+      <div class="taz-ref-trust-item">
+        <div class="taz-ref-icon-circle">⚗</div>
+        <div class="taz-ref-trust-label">
+          <span>ACCURATE</span>
+          <span>RESULTS</span>
+        </div>
+      </div>
+
+      <div class="taz-ref-trust-item">
+        <div class="taz-ref-icon-circle">🛡</div>
+        <div class="taz-ref-trust-label">
+          <span>TRUSTED</span>
+          <span>CARE</span>
+        </div>
+      </div>
+
+      <div class="taz-ref-trust-item">
+        <div class="taz-ref-icon-circle">👥</div>
+        <div class="taz-ref-trust-label">
+          <span>HEALTHIER</span>
+          <span>TOMORROW</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. INVESTIGATION BANNER -->
+  <div class="taz-ref-banner">
+    <div class="taz-ref-banner-icon-box">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    </div>
+    <div class="taz-ref-banner-vrule"></div>
+    <div class="taz-ref-banner-text-block">
+      <div class="taz-ref-banner-title">
+        COMPREHENSIVE CLINICAL LABORATORY INVESTIGATION REPORT
+      </div>
+      <div class="taz-ref-banner-subtitle">
+        DEPARTMENT OF PATHOLOGY &amp; DIAGNOSTICS &nbsp;|&nbsp; COMPUTERIZED ANALYSIS
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. PATIENT INFORMATION CARD -->
+  <div class="taz-ref-patient-card">
+    <div class="taz-ref-patient-tab">
+      <span>PATIENT INFORMATION</span>
+    </div>
+
+    <div class="taz-ref-patient-grid">
+      <!-- Left Column -->
+      <div class="taz-ref-pi-col">
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">💳</div>
+          <div class="taz-ref-pi-name">Patient ID</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val">${escapeHtml(report.patientId || "-")}</div>
+        </div>
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">👤</div>
+          <div class="taz-ref-pi-name">Patient Name</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val bold-name">${escapeHtml(report.patientName || "-")}</div>
+        </div>
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">👥</div>
+          <div class="taz-ref-pi-name">Age / Gender</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val">${escapeHtml(report.patientAge || report.age || "-")} Yrs / ${escapeHtml(report.patientGender || report.gender || "-")}</div>
+        </div>
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">📞</div>
+          <div class="taz-ref-pi-name">Phone</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val">${escapeHtml(report.patientPhone || report.phone || "-")}</div>
+        </div>
+      </div>
+
+      <div class="taz-ref-pi-vdivider"></div>
+
+      <!-- Right Column -->
+      <div class="taz-ref-pi-col">
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">📄</div>
+          <div class="taz-ref-pi-name">Report Code</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val bold-code">${escapeHtml(report.reportId || report.id || "-")}</div>
+        </div>
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">📅</div>
+          <div class="taz-ref-pi-name">Report Date</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val">${escapeHtml(formatLabDate(report.date))}</div>
+        </div>
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">🩺</div>
+          <div class="taz-ref-pi-name">Referred By</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val">${escapeHtml(report.doctorName || "Dr. Ahmed Khan")}</div>
+        </div>
+        <div class="taz-ref-pi-row">
+          <div class="taz-ref-pi-icon">📈</div>
+          <div class="taz-ref-pi-name">Status</div>
+          <div class="taz-ref-pi-colon">:</div>
+          <div class="taz-ref-pi-val">
+            <span class="taz-ref-status-badge ${report.status === "Completed" ? "completed" : "pending"}">
+              ${escapeHtml(report.status || "Pending")}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. BOTTOM MAROON ACCENT BAR -->
+  <div class="taz-ref-bottom-accent-bar"></div>
 
   <div class="section-title">Laboratory Test Results</div>
   <div class="section-line"></div>
@@ -777,42 +1224,15 @@ body {
     <div>${escapeHtml(report.remarks || "No remarks")}</div>
   </div>
 
-  ${
-    hasDoctor
-      ? `
-    <div class="signature-area">
-
-      <div class="signature">
+    <div class="signature-area single" style="display:flex; justify-content:flex-end;">
+      <div class="signature" style="min-width:200px; text-align:center;">
         <div class="signature-line"></div>
         <div class="signature-name">${escapeHtml(
-          report.doctorName
+          report.technician || "Lab Pathologist / Technician"
         )}</div>
-        <div class="signature-role">Referring Doctor</div>
+        <div class="signature-role">Authorized Signatory · Reg. #LP-88421</div>
       </div>
-
-      <div class="signature">
-        <div class="signature-line"></div>
-        <div class="signature-name">${escapeHtml(
-          report.technician || "Lab Technician"
-        )}</div>
-        <div class="signature-role">Lab Technician</div>
-      </div>
-
     </div>
-  `
-      : `
-    <div class="signature-area single">
-
-      <div class="signature">
-        <div class="signature-line"></div>
-        <div class="signature-name">${escapeHtml(
-          report.technician || "Lab Technician"
-        )}</div>
-        <div class="signature-role">Lab Technician</div>
-      </div>
-
-    </div>
-  `}
 
   <div class="footer-note">
     This report is electronically generated by TAZ DIAGNOSTIC.
@@ -2246,90 +2666,230 @@ export default function Reports() {
 
             </div>
 
-            <div className="report-preview">
-
-              <div className="preview-header">
-
-                <div className="preview-qr">
-                  <img
-                    src={getQrUrl(selectedReport)}
-                    alt="Patient QR"
-                  />
+            <div className="report-preview paper report-sheet" style={{ maxWidth: "210mm", margin: "0 auto", background: "#ffffff", padding: "8mm 14mm 10mm 14mm", border: "1.5px solid #8b1730", boxShadow: "0 8px 30px rgba(0,0,0,0.12)", boxSizing: "border-box" }}>
+              {/* 1. TOP MAROON BAR */}
+              <div className="taz-ref-top-bar">
+                <div className="taz-ref-top-left-tab">
+                  <span className="taz-ref-top-left-title">LAB REPORT</span>
+                  <span className="taz-ref-top-left-line"></span>
                 </div>
-
-                <div className="preview-brand">
-                  <h1>TAZ DIAGNOSTIC</h1>
-                  <h3>
-                    Laboratory Diagnostic Report
-                  </h3>
-                  <p>
-                    Accurate • Reliable • Trusted
-                  </p>
+                <div className="taz-ref-top-center-motto">
+                  ACCURACY &nbsp;|&nbsp; TRUST &nbsp;|&nbsp; CARE
                 </div>
-
-                <div className="preview-logo">
-                  <img
-                    src={LOGO_URL}
-                    alt="TAZ Diagnostic"
-                  />
+                <div className="taz-ref-top-right-tab">
+                  <div className="taz-ref-page-pill">
+                    PAGE 1 OF 1
+                  </div>
                 </div>
-
               </div>
 
-              <div className="preview-line" />
+              {/* 2. MAIN BRAND & CONTACT & TRUST SECTION */}
+              <div className="taz-ref-middle-section">
+                {/* Left: Brand Logo & Title */}
+                <div className="taz-ref-brand-col">
+                  <div className="taz-ref-swirl-wrapper">
+                    <svg viewBox="0 0 100 100" className="taz-ref-swirl-svg">
+                      <defs>
+                        <clipPath id="microClip-reports-modal">
+                          <circle cx="50" cy="50" r="33" />
+                        </clipPath>
+                      </defs>
+                      <path
+                        d="M 50 3 A 47 47 0 0 1 97 50 A 47 47 0 0 1 50 97 C 22 97 4 75 4 48 C 4 39 7 30 12 23 C 9 32 11 43 17 50 C 24 60 36 65 49 65 C 60 65 69 61 75 54 C 81 47 83 37 80 27 C 76 15 64 7 50 7 C 42 7 34 10 27 15 C 33 7 41 3 50 3 Z"
+                        fill="#670b1e"
+                      />
+                      <path
+                        d="M 6 48 C 6 29 18 14 34 8 C 22 14 14 26 14 41 C 14 59 29 74 47 74 C 61 74 73 65 78 53 C 73 68 59 79 42 79 C 22 79 6 66 6 48 Z"
+                        fill="#861229"
+                      />
+                      <circle cx="50" cy="50" r="33" fill="#ffffff" stroke="#670b1e" strokeWidth="1.2" />
+                      <image
+                        href="/microscope.jpg"
+                        x="22"
+                        y="19"
+                        width="56"
+                        height="62"
+                        preserveAspectRatio="xMidYMid meet"
+                        clipPath="url(#microClip-reports-modal)"
+                      />
+                    </svg>
+                  </div>
 
-              <div className="preview-patient-grid">
-
-                <div>
-                  <span>Patient ID</span>
-                  <strong>
-                    {selectedReport.patientId ||
-                      "-"}
-                  </strong>
+                  <div className="taz-ref-brand-info">
+                    <div className="taz-ref-brand-name">
+                      <span className="taz-bold">TAZ</span>
+                      <span className="taz-reg">®</span>
+                    </div>
+                    <div className="taz-ref-diag-title">D I A G N O S T I C</div>
+                    <div className="taz-ref-centre-sub">LABORATORY &amp; DIAGNOSTIC CENTRE</div>
+                    <div className="taz-ref-accreditation">NABL ACCREDITED MEDICAL LAB &nbsp;|&nbsp; ISO 9001:2015</div>
+                  </div>
                 </div>
 
-                <div>
-                  <span>Report ID</span>
-                  <strong>
-                    {selectedReport.reportId ||
-                      "-"}
-                  </strong>
+                <div className="taz-ref-vdivider"></div>
+
+                {/* Center: Contact Info */}
+                <div className="taz-ref-contact-col">
+                  <div className="taz-ref-contact-item">
+                    <div className="taz-ref-icon-circle">
+                      <Phone size={11} strokeWidth={2.4} />
+                    </div>
+                    <span className="taz-ref-phone-text">9440985131</span>
+                  </div>
+
+                  <div className="taz-ref-contact-item">
+                    <div className="taz-ref-icon-circle">
+                      <Mail size={11} strokeWidth={2.4} />
+                    </div>
+                    <span className="taz-ref-email-text">tazdiagnostic@gmail.com</span>
+                  </div>
+
+                  <div className="taz-ref-contact-item" style={{ alignItems: "flex-start" }}>
+                    <div className="taz-ref-icon-circle" style={{ marginTop: "1px" }}>
+                      <MapPin size={11} strokeWidth={2.4} />
+                    </div>
+                    <div className="taz-ref-address-text">
+                      Dr No: 8-200 RAJKUMAR SILKS,<br />
+                      Near Raj Kumar Silks Street, Main Road,<br />
+                      Tallapudi, Rajahmundry - 534341, Andhra Pradesh
+                    </div>
+                  </div>
+
+                  <div className="taz-ref-contact-item">
+                    <div className="taz-ref-icon-circle">
+                      <Clock size={11} strokeWidth={2.4} />
+                    </div>
+                    <span className="taz-ref-badge-247">24/7 Computerized Automated Lab</span>
+                  </div>
                 </div>
 
-                <div>
-                  <span>Patient Name</span>
-                  <strong>
-                    {selectedReport.patientName ||
-                      "-"}
-                  </strong>
-                </div>
+                <div className="taz-ref-vdivider"></div>
 
-                <div>
-                  <span>Date</span>
-                  <strong>
-                    {formatDate(
-                      selectedReport.date
-                    )}
-                  </strong>
-                </div>
+                {/* Right: Trust Badges */}
+                <div className="taz-ref-trust-col">
+                  <div className="taz-ref-trust-item">
+                    <div className="taz-ref-icon-circle">
+                      <FlaskConical size={11} strokeWidth={2.2} />
+                    </div>
+                    <div className="taz-ref-trust-label">
+                      <span>ACCURATE</span>
+                      <span>RESULTS</span>
+                    </div>
+                  </div>
 
-                <div>
-                  <span>Doctor / Referral</span>
-                  <strong>
-                    {selectedReport.doctorName ||
-                      "Self"}
-                  </strong>
-                </div>
+                  <div className="taz-ref-trust-item">
+                    <div className="taz-ref-icon-circle">
+                      <ShieldCheck size={11} strokeWidth={2.2} />
+                    </div>
+                    <div className="taz-ref-trust-label">
+                      <span>TRUSTED</span>
+                      <span>CARE</span>
+                    </div>
+                  </div>
 
-                <div>
-                  <span>Priority</span>
-                  <strong>
-                    {selectedReport.priority ||
-                      "Normal"}
-                  </strong>
+                  <div className="taz-ref-trust-item">
+                    <div className="taz-ref-icon-circle">
+                      <Users size={11} strokeWidth={2.2} />
+                    </div>
+                    <div className="taz-ref-trust-label">
+                      <span>HEALTHIER</span>
+                      <span>TOMORROW</span>
+                    </div>
+                  </div>
                 </div>
-
               </div>
+
+              {/* 3. INVESTIGATION BANNER */}
+              <div className="taz-ref-banner">
+                <div className="taz-ref-banner-icon-box">
+                  <FileText size={16} color="#ffffff" strokeWidth={2.2} />
+                </div>
+                <div className="taz-ref-banner-vrule"></div>
+                <div className="taz-ref-banner-text-block">
+                  <div className="taz-ref-banner-title">
+                    COMPREHENSIVE CLINICAL LABORATORY INVESTIGATION REPORT
+                  </div>
+                  <div className="taz-ref-banner-subtitle">
+                    DEPARTMENT OF PATHOLOGY &amp; DIAGNOSTICS &nbsp;|&nbsp; COMPUTERIZED ANALYSIS
+                  </div>
+                </div>
+                <div className="taz-ref-banner-wave"></div>
+              </div>
+
+              {/* 4. PATIENT INFORMATION CARD */}
+              <div className="taz-ref-patient-card">
+                <div className="taz-ref-patient-tab">
+                  <User size={12} strokeWidth={2.5} />
+                  <span>PATIENT INFORMATION</span>
+                </div>
+
+                <div className="taz-ref-patient-grid">
+                  {/* Left Column */}
+                  <div className="taz-ref-pi-col">
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><CreditCard size={13} /></div>
+                      <div className="taz-ref-pi-name">Patient ID</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val">{selectedReport.patientId || "—"}</div>
+                    </div>
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><User size={13} /></div>
+                      <div className="taz-ref-pi-name">Patient Name</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val bold-name">{selectedReport.patientName || "—"}</div>
+                    </div>
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><Users size={13} /></div>
+                      <div className="taz-ref-pi-name">Age / Gender</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val">{selectedReport.patientAge || selectedReport.age || "—"} Yrs / {selectedReport.patientGender || selectedReport.gender || "—"}</div>
+                    </div>
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><Phone size={13} /></div>
+                      <div className="taz-ref-pi-name">Phone</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val">{selectedReport.patientPhone || selectedReport.phone || "—"}</div>
+                    </div>
+                  </div>
+
+                  <div className="taz-ref-pi-vdivider"></div>
+
+                  {/* Right Column */}
+                  <div className="taz-ref-pi-col">
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><FileText size={13} /></div>
+                      <div className="taz-ref-pi-name">Report Code</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val bold-code">{selectedReport.reportId || selectedReport.id || "—"}</div>
+                    </div>
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><Calendar size={13} /></div>
+                      <div className="taz-ref-pi-name">Report Date</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val">{formatLabDate(selectedReport.date)}</div>
+                    </div>
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><Stethoscope size={13} /></div>
+                      <div className="taz-ref-pi-name">Referred By</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val">{selectedReport.doctorName || "Dr. Ahmed Khan"}</div>
+                    </div>
+                    <div className="taz-ref-pi-row">
+                      <div className="taz-ref-pi-icon"><Activity size={13} /></div>
+                      <div className="taz-ref-pi-name">Status</div>
+                      <div className="taz-ref-pi-colon">:</div>
+                      <div className="taz-ref-pi-val">
+                        <span className={`taz-ref-status-badge ${selectedReport.status === "Completed" ? "completed" : "pending"}`}>
+                          {selectedReport.status || "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. BOTTOM MAROON ACCENT BAR */}
+              <div className="taz-ref-bottom-accent-bar" style={{ marginBottom: "12px" }}></div>
 
               <h3 className="preview-title">
                 Laboratory Test Results
@@ -2392,40 +2952,16 @@ export default function Reports() {
               </div>
 
               <div
-                className={`preview-signatures ${
-                  selectedReport.doctorName &&
-                  selectedReport.doctorName !==
-                    "Self" &&
-                  selectedReport.doctorName !==
-                    "SELF"
-                    ? ""
-                    : "single"
-                }`}
+                className="preview-signatures single"
+                style={{ display: "flex", justifyContent: "flex-end" }}
               >
-
-                {selectedReport.doctorName &&
-                  selectedReport.doctorName !==
-                    "Self" &&
-                  selectedReport.doctorName !==
-                    "SELF" && (
-                    <div>
-                      <div className="signature-line" />
-                      <strong>
-                        {selectedReport.doctorName}
-                      </strong>
-                      <span>
-                        Referring Doctor
-                      </span>
-                    </div>
-                  )}
-
-                <div>
+                <div style={{ textAlign: "center", minWidth: "180px" }}>
                   <div className="signature-line" />
                   <strong>
                     {selectedReport.technician ||
-                      "Lab Technician"}
+                      "Lab Pathologist / Technician"}
                   </strong>
-                  <span>Lab Technician</span>
+                  <span>Authorized Signatory · Reg. #LP-88421</span>
                 </div>
 
               </div>

@@ -25,8 +25,8 @@ const DEFAULT_USERS = [
   {
     id: "USR001",
     name: "Administrator",
-    username: "admin",
-    password: "admin123",
+    username: "Taz@18",
+    password: "Sofiya@2010",
     role: "Administrator",
     phone: "",
     email: "",
@@ -50,8 +50,8 @@ const DEFAULT_USERS = [
   {
     id: "USR002",
     name: "Lab Technician",
-    username: "technician",
-    password: "tech123",
+    username: "Taz@18",
+    password: "Sofiya@2010",
     role: "Lab Technician",
     phone: "",
     email: "",
@@ -113,7 +113,7 @@ function loadUsers() {
 
     const parsed = JSON.parse(saved);
 
-    if (!Array.isArray(parsed) || parsed.length === 0) {
+    if (!Array.isArray(parsed) || parsed.length === 0 || parsed.some((u) => u.username === "admin" || u.password === "admin123")) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
       return DEFAULT_USERS;
     }

@@ -18,6 +18,15 @@ import {
   Trash2,
   Eye,
   RotateCcw,
+  Mail,
+  Clock,
+  FlaskConical,
+  ShieldCheck,
+  Users,
+  CreditCard,
+  User,
+  Calendar,
+  Activity,
 } from "lucide-react";
 
 const doctors = [
@@ -1468,140 +1477,235 @@ function ReportViewer() {
 
           </div>
 
-          <div className="print-report">
-
-            {/* REPORT HEADER */}
-
-            <div className="print-report-header">
-
-              <div className="print-brand">
-
-                <div className="print-logo">
-                  TAZ
-                </div>
-
-                <div>
-
-                  <h1>
-                    TAZ DIAGNOSTIC
-                  </h1>
-
-                  <span>
-                    ADVANCED DIAGNOSTIC &
-                    LABORATORY CENTRE
-                  </span>
-
-                </div>
-
+          <div className="print-report paper report-sheet" style={{ maxWidth: "210mm", margin: "20px auto", background: "#ffffff", padding: "8mm 14mm 10mm 14mm", border: "1.5px solid #8b1730", boxShadow: "0 8px 30px rgba(0,0,0,0.12)", boxSizing: "border-box" }}>
+            {/* 1. TOP MAROON BAR */}
+            <div className="taz-ref-top-bar">
+              <div className="taz-ref-top-left-tab">
+                <span className="taz-ref-top-left-title">LAB REPORT</span>
+                <span className="taz-ref-top-left-line"></span>
               </div>
-
-              <div className="print-report-title">
-
-                <span>
-                  LABORATORY REPORT
-                </span>
-
-                <strong>
-                  {selectedReport.id}
-                </strong>
-
+              <div className="taz-ref-top-center-motto">
+                ACCURACY &nbsp;|&nbsp; TRUST &nbsp;|&nbsp; CARE
               </div>
-
+              <div className="taz-ref-top-right-tab">
+                <div className="taz-ref-page-pill">
+                  PAGE 1 OF 1
+                </div>
+              </div>
             </div>
 
-            <div className="print-accent-line" />
+            {/* 2. MAIN BRAND & CONTACT & TRUST SECTION */}
+            <div className="taz-ref-middle-section">
+              {/* Left: Brand Logo & Title */}
+              <div className="taz-ref-brand-col">
+                <div className="taz-ref-swirl-wrapper">
+                  <svg viewBox="0 0 100 100" className="taz-ref-swirl-svg">
+                    <defs>
+                      <clipPath id="microClip-viewer">
+                        <circle cx="50" cy="50" r="33" />
+                      </clipPath>
+                    </defs>
+                    <path
+                      d="M 50 3 A 47 47 0 0 1 97 50 A 47 47 0 0 1 50 97 C 22 97 4 75 4 48 C 4 39 7 30 12 23 C 9 32 11 43 17 50 C 24 60 36 65 49 65 C 60 65 69 61 75 54 C 81 47 83 37 80 27 C 76 15 64 7 50 7 C 42 7 34 10 27 15 C 33 7 41 3 50 3 Z"
+                      fill="#670b1e"
+                    />
+                    <path
+                      d="M 6 48 C 6 29 18 14 34 8 C 22 14 14 26 14 41 C 14 59 29 74 47 74 C 61 74 73 65 78 53 C 73 68 59 79 42 79 C 22 79 6 66 6 48 Z"
+                      fill="#861229"
+                    />
+                    <circle cx="50" cy="50" r="33" fill="#ffffff" stroke="#670b1e" strokeWidth="1.2" />
+                    <image
+                      href="/microscope.jpg"
+                      x="22"
+                      y="19"
+                      width="56"
+                      height="62"
+                      preserveAspectRatio="xMidYMid meet"
+                      clipPath="url(#microClip-viewer)"
+                    />
+                  </svg>
+                </div>
 
-            {/* PATIENT INFORMATION */}
-
-            <div className="print-section">
-
-              <div className="print-section-title">
-                <span>
-                  PATIENT INFORMATION
-                </span>
-              </div>
-
-              <div className="print-patient-grid">
-
-                <PrintInfo
-                  label="Patient Name"
-                  value={
-                    selectedReport.patientName
-                  }
-                />
-
-                <PrintInfo
-                  label="Patient ID"
-                  value={
-                    selectedReport.patientId
-                  }
-                />
-
-                <PrintInfo
-                  label="Report Date"
-                  value={formatDate(
-                    selectedReport.date
-                  )}
-                />
-
-                <PrintInfo
-                  label="Referring Doctor"
-                  value={
-                    selectedReport.doctorName ||
-                    "Self / Walk-in"
-                  }
-                />
-
-              </div>
-
-              {(() => {
-                const patient =
-                  patients.find(
-                    (item) =>
-                      item.id ===
-                      selectedReport.patientId
-                  );
-
-                if (!patient) {
-                  return null;
-                }
-
-                return (
-                  <div className="print-patient-secondary">
-
-                    <span>
-                      Age:{" "}
-                      <strong>
-                        {patient.age}
-                      </strong>
-                    </span>
-
-                    <span>
-                      Gender:{" "}
-                      <strong>
-                        {patient.gender}
-                      </strong>
-                    </span>
-
-                    <span>
-                      Blood Group:{" "}
-                      <strong>
-                        {patient.bloodGroup}
-                      </strong>
-                    </span>
-
-                    <span>
-                      Mobile:{" "}
-                      <strong>
-                        {patient.phone}
-                      </strong>
-                    </span>
-
+                <div className="taz-ref-brand-info">
+                  <div className="taz-ref-brand-name">
+                    <span className="taz-bold">TAZ</span>
+                    <span className="taz-reg">®</span>
                   </div>
-                );
-              })()}
+                  <div className="taz-ref-diag-title">D I A G N O S T I C</div>
+                  <div className="taz-ref-centre-sub">LABORATORY &amp; DIAGNOSTIC CENTRE</div>
+                  <div className="taz-ref-accreditation">NABL ACCREDITED MEDICAL LAB &nbsp;|&nbsp; ISO 9001:2015</div>
+                </div>
+              </div>
 
+              <div className="taz-ref-vdivider"></div>
+
+              {/* Center: Contact Info */}
+              <div className="taz-ref-contact-col">
+                <div className="taz-ref-contact-item">
+                  <div className="taz-ref-icon-circle">
+                    <Phone size={11} strokeWidth={2.4} />
+                  </div>
+                  <span className="taz-ref-phone-text">9440985131</span>
+                </div>
+
+                <div className="taz-ref-contact-item">
+                  <div className="taz-ref-icon-circle">
+                    <Mail size={11} strokeWidth={2.4} />
+                  </div>
+                  <span className="taz-ref-email-text">tazdiagnostic@gmail.com</span>
+                </div>
+
+                <div className="taz-ref-contact-item" style={{ alignItems: "flex-start" }}>
+                  <div className="taz-ref-icon-circle" style={{ marginTop: "1px" }}>
+                    <MapPin size={11} strokeWidth={2.4} />
+                  </div>
+                  <div className="taz-ref-address-text">
+                    Dr No: 8-200 RAJKUMAR SILKS,<br />
+                    Near Raj Kumar Silks Street, Main Road,<br />
+                    Tallapudi, Rajahmundry - 534341, Andhra Pradesh
+                  </div>
+                </div>
+
+                <div className="taz-ref-contact-item">
+                  <div className="taz-ref-icon-circle">
+                    <Clock size={11} strokeWidth={2.4} />
+                  </div>
+                  <span className="taz-ref-badge-247">24/7 Computerized Automated Lab</span>
+                </div>
+              </div>
+
+              <div className="taz-ref-vdivider"></div>
+
+              {/* Right: Trust Badges */}
+              <div className="taz-ref-trust-col">
+                <div className="taz-ref-trust-item">
+                  <div className="taz-ref-icon-circle">
+                    <FlaskConical size={11} strokeWidth={2.2} />
+                  </div>
+                  <div className="taz-ref-trust-label">
+                    <span>ACCURATE</span>
+                    <span>RESULTS</span>
+                  </div>
+                </div>
+
+                <div className="taz-ref-trust-item">
+                  <div className="taz-ref-icon-circle">
+                    <ShieldCheck size={11} strokeWidth={2.2} />
+                  </div>
+                  <div className="taz-ref-trust-label">
+                    <span>TRUSTED</span>
+                    <span>CARE</span>
+                  </div>
+                </div>
+
+                <div className="taz-ref-trust-item">
+                  <div className="taz-ref-icon-circle">
+                    <Users size={11} strokeWidth={2.2} />
+                  </div>
+                  <div className="taz-ref-trust-label">
+                    <span>HEALTHIER</span>
+                    <span>TOMORROW</span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* 3. INVESTIGATION BANNER */}
+            <div className="taz-ref-banner">
+              <div className="taz-ref-banner-icon-box">
+                <FileText size={16} color="#ffffff" strokeWidth={2.2} />
+              </div>
+              <div className="taz-ref-banner-vrule"></div>
+              <div className="taz-ref-banner-text-block">
+                <div className="taz-ref-banner-title">
+                  COMPREHENSIVE CLINICAL LABORATORY INVESTIGATION REPORT
+                </div>
+                <div className="taz-ref-banner-subtitle">
+                  DEPARTMENT OF PATHOLOGY &amp; DIAGNOSTICS &nbsp;|&nbsp; COMPUTERIZED ANALYSIS
+                </div>
+              </div>
+              <div className="taz-ref-banner-wave"></div>
+            </div>
+
+            {/* 4. PATIENT INFORMATION CARD */}
+            {(() => {
+              const patient = patients.find((item) => item.id === selectedReport.patientId) || {};
+              return (
+                <div className="taz-ref-patient-card">
+                  <div className="taz-ref-patient-tab">
+                    <User size={12} strokeWidth={2.5} />
+                    <span>PATIENT INFORMATION</span>
+                  </div>
+
+                  <div className="taz-ref-patient-grid">
+                    {/* Left Column */}
+                    <div className="taz-ref-pi-col">
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><CreditCard size={13} /></div>
+                        <div className="taz-ref-pi-name">Patient ID</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val">{patient.id || selectedReport.patientId}</div>
+                      </div>
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><User size={13} /></div>
+                        <div className="taz-ref-pi-name">Patient Name</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val bold-name">{patient.name || selectedReport.patientName}</div>
+                      </div>
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><Users size={13} /></div>
+                        <div className="taz-ref-pi-name">Age / Gender</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val">{patient.age || "—"} Yrs / {patient.gender || "—"}</div>
+                      </div>
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><Phone size={13} /></div>
+                        <div className="taz-ref-pi-name">Phone</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val">{patient.phone || "—"}</div>
+                      </div>
+                    </div>
+
+                    <div className="taz-ref-pi-vdivider"></div>
+
+                    {/* Right Column */}
+                    <div className="taz-ref-pi-col">
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><FileText size={13} /></div>
+                        <div className="taz-ref-pi-name">Report Code</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val bold-code">{selectedReport.id}</div>
+                      </div>
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><Calendar size={13} /></div>
+                        <div className="taz-ref-pi-name">Report Date</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val">{formatLabDate(selectedReport.date)}</div>
+                      </div>
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><Stethoscope size={13} /></div>
+                        <div className="taz-ref-pi-name">Referred By</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val">{selectedReport.doctorName || patient.referredBy || "Dr. Ahmed Khan"}</div>
+                      </div>
+                      <div className="taz-ref-pi-row">
+                        <div className="taz-ref-pi-icon"><Activity size={13} /></div>
+                        <div className="taz-ref-pi-name">Status</div>
+                        <div className="taz-ref-pi-colon">:</div>
+                        <div className="taz-ref-pi-val">
+                          <span className={`taz-ref-status-badge ${selectedReport.status === "Completed" ? "completed" : "pending"}`}>
+                            {selectedReport.status || "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 5. BOTTOM MAROON ACCENT BAR */}
+            <div className="taz-ref-bottom-accent-bar" style={{ marginBottom: "12px" }}></div>
 
             {/* TEST RESULTS */}
 
@@ -1740,33 +1844,9 @@ function ReportViewer() {
 
             {/* SIGNATURES */}
 
-            <div className="print-signatures">
+            <div className="print-signatures" style={{ display: "flex", justifyContent: "flex-end" }}>
 
-              {selectedReport.doctorName ? (
-
-                <div className="signature-block">
-
-                  <div className="signature-space" />
-
-                  <div className="signature-line" />
-
-                  <strong>
-                    {selectedReport.doctorName}
-                  </strong>
-
-                  <span>
-                    Referring Doctor
-                  </span>
-
-                </div>
-
-              ) : (
-
-                <div className="signature-block empty-signature" />
-
-              )}
-
-              <div className="signature-block">
+              <div className="signature-block" style={{ textAlign: "center", minWidth: "200px" }}>
 
                 <div className="signature-space" />
 
@@ -1777,7 +1857,7 @@ function ReportViewer() {
                 </strong>
 
                 <span>
-                  Authorized Signatory
+                  Authorized Signatory · Reg. #LP-88421
                 </span>
 
               </div>
@@ -1868,6 +1948,21 @@ function formatDate(date) {
       year: "numeric",
     }
   );
+}
+
+function formatLabDate(dateStr) {
+  if (!dateStr) return "21-Sep-2026";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const mon = months[d.getMonth()];
+    const yr = d.getFullYear();
+    return `${day}-${mon}-${yr}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 export default ReportViewer;

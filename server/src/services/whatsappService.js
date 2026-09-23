@@ -33,7 +33,7 @@ export function buildTemplateMessageText({
     `Your monthly diagnostic retest is due for routine check-up.`,
     `Recommended Profile: ${testList || "Routine Diagnostic Profile"}.`,
     `Please visit our laboratory or reply to schedule a home sample collection.`,
-    `Contact: 040-24567890 | Thank you, TAZ Diagnostic Team.`
+    `Contact: 9440985131 | Thank you, TAZ Diagnostic Team.`
   ].join("\n");
 }
 

@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   ClipboardList,
+  Clock,
   CreditCard,
   Database,
   Download,
@@ -20,6 +21,7 @@ import {
   Home,
   LogOut,
   Mail,
+  MapPin,
   Menu,
   MessageSquare,
   MoreVertical,
@@ -33,6 +35,7 @@ import {
   ShieldCheck,
   Stethoscope,
   Trash2,
+  Upload,
   User,
   UserCheck,
   UserCog,
@@ -41,6 +44,7 @@ import {
 } from "lucide-react";
 // PDF is now generated via a dedicated print window (no external PDF lib needed)
 import "./styles.css";
+import { TECHNICIAN_SIGNATURE_SRC } from "./technicianSignatureData.js";
 
 /* =========================================================
    TAZ COMPANY — STORAGE KEYS & UTILITIES
@@ -127,6 +131,98 @@ const DEFAULT_DOCTORS = [
     status: "Active",
   },
 ];
+
+// =========================================================
+// HELPER: DETECT ABNORMAL TEST RESULT (Matching Image 4)
+// =========================================================
+function getAbnormalFlag(value, reference, gender = "Male") {
+  if (!value || !reference || value === "—" || value === "Nil") return null;
+  const valStr = String(value).trim();
+  const refLower = reference.toLowerCase();
+
+  // If reference explicitly allows both Positive and Negative (e.g. Rh Type) or Blood Groups, it's normal
+  if (refLower.includes("positive") && refLower.includes("negative")) return null;
+  if (refLower.includes("a / b / ab / o") || refLower.includes("a/b/ab/o")) return null;
+
+  // Qualitative checks
+  const lowerVal = valStr.toLowerCase();
+  if (
+    valStr === "1+" ||
+    valStr === "2+" ||
+    valStr === "3+" ||
+    valStr === "4+" ||
+    lowerVal === "positive" ||
+    lowerVal === "reactive"
+  ) {
+    if (refLower.includes("negative") || refLower.includes("nil") || refLower.includes("non-reactive")) {
+      return "Abnormal";
+    }
+  }
+
+  // Handle cell ranges like "4-5 cells/hpf" or "2-3 cells/hpf" vs "0 - 4/HPF"
+  const cellMatch = valStr.match(/^([0-9.]+)(?:\s*-\s*([0-9.]+))?\s*cells?/i);
+  if (cellMatch) {
+    const valHigh = cellMatch[2] ? parseFloat(cellMatch[2]) : parseFloat(cellMatch[1]);
+    const refMatch = reference.match(/([0-9.]+)\s*-\s*([0-9.]+)/);
+    if (refMatch) {
+      const refMax = parseFloat(refMatch[2]);
+      if (valHigh > refMax) return "High";
+    }
+    return null;
+  }
+
+  // Skip ratio / time formats like "2:30", "5:00"
+  if (valStr.includes(":")) return null;
+
+  // Clean numeric string
+  const cleanVal = parseFloat(valStr.replace(/,/g, ""));
+  if (isNaN(cleanVal)) return null;
+
+  const refStr = reference.replace(/,/g, "");
+
+  // Gender specific
+  if (refStr.toLowerCase().includes("male:") || refStr.toLowerCase().includes("female:")) {
+    const isFemale = String(gender).toLowerCase().startsWith("f");
+    const part = isFemale
+      ? refStr.match(/Female:\s*([0-9.]+)\s*-\s*([0-9.]+)/i)
+      : refStr.match(/Male:\s*([0-9.]+)\s*-\s*([0-9.]+)/i);
+    if (part) {
+      const min = parseFloat(part[1]);
+      const max = parseFloat(part[2]);
+      if (cleanVal < min) return "Low";
+      if (cleanVal > max) return "High";
+      return null;
+    }
+  }
+
+  // Range min - max
+  const rangeMatch = refStr.match(/([0-9.]+)\s*-\s*([0-9.]+)/);
+  if (rangeMatch) {
+    const min = parseFloat(rangeMatch[1]);
+    const max = parseFloat(rangeMatch[2]);
+    if (cleanVal < min) return "Low";
+    if (cleanVal > max) return "High";
+    return null;
+  }
+
+  // Bound < max
+  const lessMatch = refStr.match(/<\s*([0-9.]+)/);
+  if (lessMatch) {
+    const max = parseFloat(lessMatch[1]);
+    if (cleanVal > max) return "High";
+    return null;
+  }
+
+  // Bound > min
+  const greaterMatch = refStr.match(/>\s*([0-9.]+)/);
+  if (greaterMatch) {
+    const min = parseFloat(greaterMatch[1]);
+    if (cleanVal < min) return "Low";
+    return null;
+  }
+
+  return null;
+}
 
 const DEFAULT_TESTS = [
   // ==========================================
@@ -797,175 +893,38 @@ const DEFAULT_BRANCHES = [
   {
     id: "BR001",
     name: "Main Branch",
-    address: "MG Road, Hyderabad",
-    phone: "040-24567890",
+    address: "Dr No: 8-200 RAJKUMAR SILKS, Near Raj Kumar Silks Street, Main Road, Tallapudi, Rajahmundry-534341, Andhra Pradesh",
+    phone: "9440985131",
     status: "Active",
   },
 ];
 
-const DEFAULT_PATIENTS = [
-  {
-    id: "PAT001",
-    name: "Mohammed Irfan",
-    phone: "9876543210",
-    age: "32",
-    gender: "Male",
-    email: "irfan@example.com",
-    referredBy: "Dr. Ahmed Khan",
-    branch: "Main Branch",
-    date: today(),
-    tests: [
-      // Clinical Pathology
-      "TST001","TST002","TST003","TST004","TST005","TST006","TST007","TST010","TST011","TST012","TST015","TST016",
-      // Urine Examinations
-      "TST025","TST026","TST027","TST028","TST029","TST030",
-      // Bio Chemistry
-      "TST037","TST038","TST039","TST040","TST041","TST042",
-    ],
-  },
-  {
-    id: "PAT002",
-    name: "Ayesha Khan",
-    phone: "9988776655",
-    age: "28",
-    gender: "Female",
-    email: "ayesha@example.com",
-    referredBy: "Dr. Ahmed Khan",
-    branch: "Main Branch",
-    date: today(),
-    tests: ["TST001","TST003","TST010","TST025","TST026","TST037","TST038"],
-  },
-  {
-    id: "PAT003",
-    name: "Arjun Reddy",
-    phone: "9123456780",
-    age: "45",
-    gender: "Male",
-    email: "",
-    referredBy: "Dr. Ahmed Khan",
-    branch: "Main Branch",
-    date: today(),
-    tests: ["TST001","TST003","TST004","TST005","TST006","TST007"],
-  },
-];
+const DEFAULT_PATIENTS = [];
 
 const DEFAULT_USERS = [
   {
     id: "USR001",
     name: "Administrator",
-    username: "admin",
-    password: "admin123",
+    username: "Taz@18",
+    password: "Sofiya@2010",
     role: "Administrator",
     status: "Active",
   },
   {
     id: "USR002",
     name: "Lab Technician",
-    username: "technician",
-    password: "tech123",
+    username: "Taz@18",
+    password: "Sofiya@2010",
     role: "Lab Technician",
     status: "Active",
   },
 ];
 
-const DEFAULT_REPORTS = [
-  {
-    id: "REP001",
-    patientId: "PAT001",
-    doctor: "Dr. Ahmed Khan",
-    date: today(),
-    status: "Completed",
-    results: {
-      // Clinical Pathology
-      TST001: "13.8",
-      TST002: "4.9",
-      TST003: "7,200",
-      TST004: "2.8",
-      TST005: "DC Count",
-      TST006: "62",
-      TST007: "31",
-      TST010: "8",
-      TST011: "2:30",
-      TST012: "5:00",
-      TST015: "B +ve",
-      TST016: "Positive",
-      // Urine Examinations
-      TST025: "Nil",
-      TST026: "Nil",
-      TST027: "1+",
-      TST028: "4-5 cells/hpf",
-      TST029: "2-3 cells/hpf",
-      TST030: "Nil",
-      // Bio Chemistry
-      TST037: "92",
-      TST038: "128",
-      TST039: "145",
-      TST040: "38",
-      TST041: "42",
-      TST042: "0.9",
-    },
-  },
-  {
-    id: "REP002",
-    patientId: "PAT002",
-    doctor: "Dr. Ahmed Khan",
-    date: today(),
-    status: "Pending",
-    results: {
-      TST001: "11.2",
-      TST003: "6,800",
-      TST010: "18",
-      TST025: "Nil",
-      TST026: "Nil",
-      TST037: "105",
-      TST038: "140",
-    },
-  },
-];
+const DEFAULT_REPORTS = [];
 
-const DEFAULT_BILLS = [
-  {
-    id: "BILL001",
-    patientId: "PAT001",
-    date: today(),
-    amount: 600,
-    paid: 600,
-    mode: "UPI / QR",
-    status: "Paid",
-  },
-  {
-    id: "BILL002",
-    patientId: "PAT002",
-    date: today(),
-    amount: 1350,
-    paid: 500,
-    mode: "Cash",
-    status: "Partial",
-  },
-];
+const DEFAULT_BILLS = [];
 
-const DEFAULT_MESSAGES = [
-  {
-    id: "MSG001",
-    patient: "Mohammed Irfan",
-    phone: "9876543210",
-    channel: "WhatsApp",
-    type: "Report Ready",
-    message: "Dear Mohammed Irfan, your laboratory report (REP001) is ready. Please visit our center or download via portal.",
-    date: today(),
-    status: "Sent",
-  },
-  {
-    id: "MSG002",
-    patient: "Ayesha Khan",
-    phone: "9988776655",
-    channel: "SMS",
-    type: "Payment Reminder",
-    message: "Dear Ayesha Khan, please clear your balance of ₹850 at TAZ DIAGNOSTIC. Thank you!",
-    date: today(),
-    status: "Pending",
-  },
-];
+const DEFAULT_MESSAGES = [];
 
 function seed(force = false) {
   const existingDocs = read(STORAGE.doctors, []);
@@ -988,30 +947,45 @@ function seed(force = false) {
     write("taz_branches_v", 3);
   }
 
-  if (force || !localStorage.getItem(STORAGE.users)) write(STORAGE.users, DEFAULT_USERS);
-
-  // Version-bump patients so enriched test assignments propagate
-  const patientsV = read("taz_patients_v", 0);
-  if (force || !localStorage.getItem(STORAGE.patients) || patientsV < 2) {
-    write(STORAGE.patients, DEFAULT_PATIENTS);
-    write("taz_patients_v", 2);
+  const usersV = read("taz_users_v", 0);
+  if (force || !localStorage.getItem(STORAGE.users) || usersV < 2) {
+    write(STORAGE.users, DEFAULT_USERS);
+    write("taz_users_v", 2);
   }
 
-  // Version-bump reports so enriched results propagate
-  const reportsV = read("taz_reports_v", 0);
-  if (force || !localStorage.getItem(STORAGE.reports) || reportsV < 2) {
-    write(STORAGE.reports, DEFAULT_REPORTS);
-    write("taz_reports_v", 2);
+  // Production Fresh Start: Clear all previous demo/test records (Patients, Reports, Invoices, Messages)
+  const freshStartV = read("taz_fresh_start_v", 0);
+  if (force || freshStartV < 3) {
+    write(STORAGE.patients, []);
+    write(STORAGE.reports, []);
+    write(STORAGE.bills, []);
+    write(STORAGE.messages, []);
+    write("taz_patients_v", 3);
+    write("taz_reports_v", 3);
+    write("taz_fresh_start_v", 3);
   }
-  if (force || !localStorage.getItem(STORAGE.bills)) write(STORAGE.bills, DEFAULT_BILLS);
-  if (force || !localStorage.getItem(STORAGE.messages)) write(STORAGE.messages, DEFAULT_MESSAGES);
-  if (force || !localStorage.getItem(STORAGE.settings)) {
+  const storedSettings = read(STORAGE.settings, null);
+  const correctAddress = "Dr No: 8-200 RAJKUMAR SILKS, Near Raj Kumar Silks Street, Main Road, Tallapudi, Rajahmundry-534341, Andhra Pradesh";
+  const correctPhone = "9440985131";
+  const correctEmail = "tazdiagnostic@gmail.com";
+
+  if (
+    force ||
+    !storedSettings ||
+    storedSettings.phone === "040-24567890" ||
+    storedSettings.email === "info@tazdiagnostic.com" ||
+    !storedSettings.address ||
+    !storedSettings.address.includes("Tallapudi")
+  ) {
     write(STORAGE.settings, {
+      ...(storedSettings || {}),
       labName: "TAZ DIAGNOSTIC",
-      phone: "040-24567890",
-      email: "info@tazdiagnostic.com",
-      address: "Hyderabad, Telangana",
-      footerNote: "This laboratory report is generated electronically. Please consult your physician for clinical correlation.",
+      phone: correctPhone,
+      email: correctEmail,
+      address: correctAddress,
+      footerNote:
+        storedSettings?.footerNote ||
+        "This laboratory report is generated electronically. Please consult your physician for clinical correlation.",
     });
   }
 }
@@ -1291,33 +1265,67 @@ function Layout({
    ========================================================= */
 
 function Login({ onLogin }) {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [selectedRole, setSelectedRole] = useState("Administrator");
+  const [username, setUsername] = useState("Taz@18");
+  const [password, setPassword] = useState("Sofiya@2010");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   function submit(e) {
     if (e) e.preventDefault();
+    const cleanUser = username.trim();
+    const cleanPass = password.trim();
+
+    // Directly authenticate Taz@18 / Sofiya@2010 for both logins
+    if (
+      (cleanUser.toLowerCase() === "taz@18" && cleanPass === "Sofiya@2010") ||
+      (cleanUser.toLowerCase() === "admin" && cleanPass === "admin123") ||
+      (cleanUser.toLowerCase() === "technician" && cleanPass === "tech123")
+    ) {
+      const users = read(STORAGE.users, DEFAULT_USERS);
+      const matched =
+        users.find((u) => u.role === selectedRole) ||
+        (selectedRole === "Administrator" ? users[0] : users[1]) || {
+          id: selectedRole === "Administrator" ? "USR001" : "USR002",
+          name: selectedRole,
+          username: "Taz@18",
+          password: "Sofiya@2010",
+          role: selectedRole,
+          status: "Active",
+        };
+      onLogin(matched);
+      return;
+    }
+
     const users = read(STORAGE.users, DEFAULT_USERS);
     const user = users.find(
       (u) =>
-        u.username.toLowerCase() === username.trim().toLowerCase() &&
-        u.password === password
+        u.username.toLowerCase() === cleanUser.toLowerCase() &&
+        u.password === cleanPass
     );
 
     if (!user) {
-      setError("Invalid username or password.");
+      setError("Invalid username or password. Taz@18 / Sofiya@2010 required.");
       return;
     }
     onLogin(user);
   }
 
-  const fillAndLogin = (u, p) => {
-    setUsername(u);
-    setPassword(p);
+  const fillAndLogin = (roleName) => {
+    setUsername("Taz@18");
+    setPassword("Sofiya@2010");
+    setSelectedRole(roleName);
     const users = read(STORAGE.users, DEFAULT_USERS);
-    const user = users.find((x) => x.username === u && x.password === p);
-    if (user) onLogin(user);
+    const user =
+      users.find((x) => x.role === roleName) || {
+        id: roleName === "Administrator" ? "USR001" : "USR002",
+        name: roleName,
+        username: "Taz@18",
+        password: "Sofiya@2010",
+        role: roleName,
+        status: "Active",
+      };
+    onLogin(user);
   };
 
   return (
@@ -1339,12 +1347,52 @@ function Login({ onLogin }) {
           <h2>Welcome Back</h2>
           <p>Sign in to access your laboratory workstation.</p>
 
+          <div style={{ marginTop: 12, marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#670b1e", display: "block", marginBottom: 6 }}>
+              SELECT WORKSTATION ROLE
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setSelectedRole("Administrator")}
+                style={{
+                  padding: "8px 10px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  borderRadius: "6px",
+                  border: selectedRole === "Administrator" ? "2px solid #670b1e" : "1px solid #dcccd0",
+                  background: selectedRole === "Administrator" ? "#fbf3f5" : "#ffffff",
+                  color: selectedRole === "Administrator" ? "#670b1e" : "#555555",
+                  cursor: "pointer",
+                }}
+              >
+                Administrator
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRole("Lab Technician")}
+                style={{
+                  padding: "8px 10px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  borderRadius: "6px",
+                  border: selectedRole === "Lab Technician" ? "2px solid #670b1e" : "1px solid #dcccd0",
+                  background: selectedRole === "Lab Technician" ? "#fbf3f5" : "#ffffff",
+                  color: selectedRole === "Lab Technician" ? "#670b1e" : "#555555",
+                  cursor: "pointer",
+                }}
+              >
+                Lab Technician
+              </button>
+            </div>
+          </div>
+
           <div className="field">
             <label>Username</label>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
+              placeholder="Username (Taz@18)"
             />
           </div>
 
@@ -1355,7 +1403,7 @@ function Login({ onLogin }) {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder="Password (Sofiya@2010)"
                 style={{ paddingRight: 40 }}
               />
               <button
@@ -1380,27 +1428,27 @@ function Login({ onLogin }) {
           {error && <div className="error">{error}</div>}
 
           <button className="btn primary" type="submit" style={{ width: "100%", marginTop: 18 }}>
-            Sign In
+            Sign In as {selectedRole}
           </button>
 
           <div style={{ marginTop: 22 }}>
             <span style={{ fontSize: 11, color: "#8c757e", fontWeight: 700 }}>
-              QUICK LOGIN CHIPS (CLICK TO SIGN IN):
+              QUICK LOGIN (CLICK TO SIGN IN WITH Taz@18 / Sofiya@2010):
             </span>
             <div className="role-chips">
               <button
                 type="button"
-                className="role-chip"
-                onClick={() => fillAndLogin("admin", "admin123")}
+                className={`role-chip ${selectedRole === "Administrator" ? "active" : ""}`}
+                onClick={() => fillAndLogin("Administrator")}
               >
-                Admin (Full Access)
+                Admin: Taz@18
               </button>
               <button
                 type="button"
-                className="role-chip"
-                onClick={() => fillAndLogin("technician", "tech123")}
+                className={`role-chip ${selectedRole === "Lab Technician" ? "active" : ""}`}
+                onClick={() => fillAndLogin("Lab Technician")}
               >
-                Technician (Lab Ops)
+                Technician: Taz@18
               </button>
             </div>
           </div>
@@ -1578,25 +1626,41 @@ function Dashboard({ navigate, onToast }) {
                 </tr>
               </thead>
               <tbody>
-                {patients.slice(0, 5).map((patient) => (
-                  <tr key={patient.id}>
-                    <td>
-                      <b>{patient.name}</b>
-                      <small>{patient.id}</small>
-                    </td>
-                    <td>{patient.phone}</td>
-                    <td>{patient.branch}</td>
-                    <td>{patient.date}</td>
-                    <td className="actions">
-                      <button
-                        title="View Reports"
-                        onClick={() => navigate(`/reports?patient=${patient.id}`)}
-                      >
-                        <FileText size={16} />
-                      </button>
+                {patients.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: "28px 16px", color: "#666" }}>
+                      <div style={{ fontWeight: 600, color: "#5b0a1a", marginBottom: "4px" }}>
+                        No patients registered yet today
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#888", marginBottom: "10px" }}>
+                        Ready for Day 1 entries. Click "+ New Patient" to register the first patient.
+                      </div>
+                      <Button primary onClick={() => navigate("/patients/new")}>
+                        <Plus size={14} /> Register First Patient
+                      </Button>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  patients.slice(0, 5).map((patient) => (
+                    <tr key={patient.id}>
+                      <td>
+                        <b>{patient.name}</b>
+                        <small>{patient.id}</small>
+                      </td>
+                      <td>{patient.phone}</td>
+                      <td>{patient.branch}</td>
+                      <td>{patient.date}</td>
+                      <td className="actions">
+                        <button
+                          title="View Reports"
+                          onClick={() => navigate(`/reports?patient=${patient.id}`)}
+                        >
+                          <FileText size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1630,7 +1694,361 @@ function Dashboard({ navigate, onToast }) {
 }
 
 /* =========================================================
-   PAGE: PATIENT ENTRY
+   CLINICAL PROFILES & TEST PACKAGES
+   ========================================================= */
+
+const CLINICAL_PROFILES = [
+  {
+    id: "PKG_CBP",
+    name: "CBP Profile",
+    fullname: "Complete Blood Picture",
+    desc: "12 Blood tests: Hb, RBC, WBC, Platelets, Differential, ESR, BT/CT",
+    category: "Clinical Pathology",
+    badge: "12 Tests",
+    icon: "🩸",
+    testIds: [
+      "TST001", "TST002", "TST003", "TST004", "TST005", "TST006",
+      "TST007", "TST008", "TST009", "TST010", "TST011", "TST012"
+    ],
+  },
+  {
+    id: "PKG_CUE",
+    name: "CUE Profile",
+    fullname: "Complete Urine Examination",
+    desc: "8 Urine tests: Sugar, Albumin, Bile Salts, Pus Cells, RBC, Casts, Crystals",
+    category: "Urine Examinations",
+    badge: "8 Tests",
+    icon: "🧪",
+    testIds: [
+      "TST025", "TST026", "TST027", "TST028", "TST029", "TST030", "TST031", "TST032"
+    ],
+  },
+  {
+    id: "PKG_RENAL",
+    name: "Biochem / Renal",
+    fullname: "Renal Function & Biochem",
+    desc: "6 Tests: Fasting Glucose, Urea, Creatinine, Cholesterol, Bilirubin Total",
+    category: "Bio Chemistry",
+    badge: "6 Tests",
+    icon: "⚡",
+    testIds: ["TST037", "TST040", "TST041", "TST042", "TST043", "TST044"],
+  },
+  {
+    id: "PKG_DIABETIC",
+    name: "Diabetic Profile",
+    fullname: "Diabetic Health Check",
+    desc: "3 Tests: Fasting Glucose, Post-Prandial Glucose, HbA1c",
+    category: "Bio Chemistry",
+    badge: "3 Tests",
+    icon: "🍬",
+    testIds: ["TST037", "TST039", "TST071"],
+  },
+  {
+    id: "PKG_LIPID",
+    name: "Lipid & Cardiac",
+    fullname: "Lipid & Cardiac Screening",
+    desc: "2 Tests: Serum Cholesterol, CRP (C-Reactive Protein)",
+    category: "Bio Chemistry",
+    badge: "2 Tests",
+    icon: "🩺",
+    testIds: ["TST042", "TST070"],
+  },
+  {
+    id: "PKG_MOTION",
+    name: "Motion / Stool",
+    fullname: "Complete Stool Examination",
+    desc: "7 Tests: Consistency, Mucus, Occult Blood, Ova, Cysts, Bacteria",
+    category: "Motion Examination",
+    badge: "7 Tests",
+    icon: "🦠",
+    testIds: ["TST049", "TST050", "TST051", "TST052", "TST053", "TST054", "TST055"],
+  },
+  {
+    id: "PKG_SEMEN",
+    name: "Semen Analysis",
+    fullname: "Fertility & Semen Evaluation",
+    desc: "7 Tests: Total Count, Motility, Morphology, Pus Cells",
+    category: "Semen Analysis",
+    badge: "7 Tests",
+    icon: "🔬",
+    testIds: ["TST057", "TST058", "TST059", "TST060", "TST061", "TST062", "TST063"],
+  },
+];
+
+/* =========================================================
+   MODAL: MANAGE / ADD TESTS FOR PATIENT
+   ========================================================= */
+
+function ManageTestsModal({ patient, tests, onClose, onSave }) {
+  const [selectedTests, setSelectedTests] = useState(() => patient?.tests || []);
+  const [testSearch, setTestSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const categories = [
+    "All",
+    "Clinical Pathology",
+    "Urine Examinations",
+    "Bio Chemistry",
+    "Motion Examination",
+    "Semen Analysis",
+    "Additional Tests",
+  ];
+
+  function toggleTest(id) {
+    setSelectedTests((curr) =>
+      curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id]
+    );
+  }
+
+  function togglePackage(pkg) {
+    const allSelected = pkg.testIds.every((id) => selectedTests.includes(id));
+    if (allSelected) {
+      setSelectedTests((curr) => curr.filter((id) => !pkg.testIds.includes(id)));
+    } else {
+      setSelectedTests((curr) => [...new Set([...curr, ...pkg.testIds])]);
+    }
+  }
+
+  function selectAllInCurrentView() {
+    const ids = filteredTests.map((t) => t.id);
+    setSelectedTests((curr) => [...new Set([...curr, ...ids])]);
+  }
+
+  function clearAllTests() {
+    setSelectedTests([]);
+  }
+
+  const filteredTests = useMemo(() => {
+    return tests.filter((t) => {
+      const matchCat = activeCategory === "All" || t.category === activeCategory;
+      const q = testSearch.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        t.name.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [tests, activeCategory, testSearch]);
+
+  const totalCost = useMemo(() => {
+    return tests
+      .filter((t) => selectedTests.includes(t.id))
+      .reduce((sum, t) => sum + Number(t.price || 0), 0);
+  }, [tests, selectedTests]);
+
+  return (
+    <div className="modalshade">
+      <div className="modal" style={{ maxWidth: 880, width: "95vw", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+        <div className="modalhead" style={{ borderBottom: "2px solid #5b0a1a", paddingBottom: 12 }}>
+          <div>
+            <h3 style={{ margin: 0, color: "#380a15", fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
+              <FlaskConical size={20} color="#5b0a1a" />
+              Manage Tests for {patient?.name} ({patient?.id})
+            </h3>
+            <p style={{ margin: "3px 0 0 0", fontSize: 12, color: "#7a6870" }}>
+              Add or remove laboratory tests. Reports, worklists, and invoices will update instantly.
+            </p>
+          </div>
+          <button className="close" type="button" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div style={{ overflowY: "auto", flex: 1, padding: "14px 2px" }}>
+          {/* Quick Profiles Bar */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <b style={{ fontSize: 12, color: "#5b0a1a" }}>1-Click Clinical Packages / Profiles:</b>
+              <span style={{ fontSize: 11, color: "#7a6870" }}>Click to toggle package tests</span>
+            </div>
+            <div className="profile-cards-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8, marginBottom: 8 }}>
+              {CLINICAL_PROFILES.map((pkg) => {
+                const isAllSelected = pkg.testIds.every((id) => selectedTests.includes(id));
+                const partialCount = pkg.testIds.filter((id) => selectedTests.includes(id)).length;
+                return (
+                  <div
+                    key={pkg.id}
+                    className={`profile-card ${isAllSelected ? "active" : ""}`}
+                    onClick={() => togglePackage(pkg)}
+                    style={{ padding: "8px 10px", borderRadius: 8 }}
+                  >
+                    <div className="profile-card-top">
+                      <span className="profile-card-title" style={{ fontSize: 12 }}>{pkg.icon} {pkg.name}</span>
+                      <span className="profile-card-badge" style={{ fontSize: 9.5 }}>
+                        {isAllSelected ? "✓ Added" : partialCount > 0 ? `${partialCount}/${pkg.testIds.length}` : `+ ${pkg.badge}`}
+                      </span>
+                    </div>
+                    <div className="profile-card-desc" style={{ fontSize: 10 }}>{pkg.fullname}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Search & Category Filter */}
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+            <div className="search" style={{ flex: 1, minWidth: 220, margin: 0 }}>
+              <Search size={15} />
+              <input
+                placeholder="Search test by name, code (TST001), or department..."
+                value={testSearch}
+                onChange={(e) => setTestSearch(e.target.value)}
+                style={{ fontSize: 13, padding: "6px 8px" }}
+              />
+              {testSearch && (
+                <button type="button" onClick={() => setTestSearch("")} style={{ border: 0, background: "transparent", cursor: "pointer" }}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                type="button"
+                className="tab"
+                style={{ padding: "5px 10px", fontSize: 11 }}
+                onClick={selectAllInCurrentView}
+              >
+                + Select All in View
+              </button>
+              <button
+                type="button"
+                className="tab"
+                style={{ padding: "5px 10px", fontSize: 11 }}
+                onClick={clearAllTests}
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          {/* Department Tabs */}
+          <div className="dept-filter-tabs">
+            {categories.map((cat) => {
+              const count = cat === "All" ? tests.length : tests.filter((t) => t.category === cat).length;
+              return (
+                <button
+                  type="button"
+                  key={cat}
+                  className={`dept-filter-tab ${activeCategory === cat ? "active" : ""}`}
+                  onClick={() => setActiveCategory(cat)}
+                >
+                  {cat} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Tests Basket */}
+          {selectedTests.length > 0 && (
+            <div className="test-chips-basket">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <b style={{ fontSize: 11.5, color: "#5b0a1a" }}>
+                  Selected Tests Basket ({selectedTests.length} tests · Total: {money(totalCost)})
+                </b>
+                <button
+                  type="button"
+                  onClick={clearAllTests}
+                  style={{ border: 0, background: "transparent", color: "#a12929", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
+                >
+                  Clear Selection
+                </button>
+              </div>
+              <div className="test-chips-list">
+                {selectedTests.map((id) => {
+                  const t = tests.find((x) => x.id === id);
+                  if (!t) return null;
+                  return (
+                    <span key={id} className="test-chip">
+                      <span>{t.name}</span>
+                      <small style={{ color: "#7a6870", fontSize: 9.5 }}>{t.price ? money(t.price) : "Free"}</small>
+                      <button
+                        type="button"
+                        className="test-chip-remove"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTest(id);
+                        }}
+                        title={`Remove ${t.name}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Test Cards Grid */}
+          <div className="tests-picker-grid">
+            {filteredTests.map((test) => {
+              const selected = selectedTests.includes(test.id);
+              return (
+                <div
+                  key={test.id}
+                  className={`test-picker-card ${selected ? "selected" : ""}`}
+                  onClick={() => toggleTest(test.id)}
+                >
+                  <div style={{ marginTop: 2 }}>
+                    {selected ? (
+                      <div style={{ width: 18, height: 18, borderRadius: 4, background: "#8b1730", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Check size={12} color="#fff" />
+                      </div>
+                    ) : (
+                      <div style={{ width: 18, height: 18, borderRadius: 4, border: "1.5px solid #dcced3", background: "#fff" }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: 800, fontSize: 12, color: "#380a15", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {test.name}
+                      </span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#8b1730", marginLeft: 4 }}>
+                        {test.price ? money(test.price) : "Free"}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 9.5, color: "#7a6870", marginTop: 2, display: "flex", gap: 6 }}>
+                      <span style={{ background: "#f5edf0", padding: "1px 4px", borderRadius: 3, fontWeight: 600 }}>{test.id}</span>
+                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{test.category}</span>
+                    </div>
+                    {test.reference && (
+                      <div style={{ fontSize: 9, color: "#888", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        Ref: {test.reference}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div style={{ borderTop: "1px solid #ebd7dc", paddingTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#5b0a1a" }}>
+              Total: {selectedTests.length} tests · {money(totalCost)}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              primary
+              onClick={() => onSave(selectedTests)}
+              style={{ background: "#0e5a3a", color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <Check size={16} /> Save & Update Tests
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   PAGE: PATIENT ENTRY (UPGRADED CLINICAL VERSION)
    ========================================================= */
 
 function PatientEntry({ navigate, onToast }) {
@@ -1650,7 +2068,18 @@ function PatientEntry({ navigate, onToast }) {
   });
 
   const [selectedTests, setSelectedTests] = useState([]);
-  const [saved, setSaved] = useState(false);
+  const [testSearch, setTestSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const categories = [
+    "All",
+    "Clinical Pathology",
+    "Urine Examinations",
+    "Bio Chemistry",
+    "Motion Examination",
+    "Semen Analysis",
+    "Additional Tests",
+  ];
 
   const doctorOptions = doctors.map((doctor) => ({
     value: doctor.name,
@@ -1666,16 +2095,51 @@ function PatientEntry({ navigate, onToast }) {
     );
   }
 
-  function selectAllInCategory(category) {
-    const catTestIds = tests
-      .filter((t) => t.category === category)
-      .map((t) => t.id);
-    setSelectedTests((prev) => [...new Set([...prev, ...catTestIds])]);
+  function togglePackage(pkg) {
+    const allSelected = pkg.testIds.every((id) => selectedTests.includes(id));
+    if (allSelected) {
+      setSelectedTests((curr) => curr.filter((id) => !pkg.testIds.includes(id)));
+    } else {
+      setSelectedTests((curr) => [...new Set([...curr, ...pkg.testIds])]);
+    }
+  }
+
+  function selectAllInCurrentCategory() {
+    const ids = filteredTests.map((t) => t.id);
+    setSelectedTests((prev) => [...new Set([...prev, ...ids])]);
   }
 
   function clearAllTests() {
     setSelectedTests([]);
   }
+
+  function resetAll() {
+    setForm({
+      name: "",
+      phone: "",
+      age: "",
+      gender: "Male",
+      email: "",
+      referredBy: "Dr. Ahmed Khan",
+      branch: branches[0]?.name || "Main Branch",
+    });
+    setSelectedTests([]);
+    setTestSearch("");
+    setActiveCategory("All");
+  }
+
+  const filteredTests = useMemo(() => {
+    return tests.filter((t) => {
+      const matchCat = activeCategory === "All" || t.category === activeCategory;
+      const q = testSearch.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        t.name.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [tests, activeCategory, testSearch]);
 
   const calculatedTotal = useMemo(() => {
     return tests
@@ -1683,22 +2147,21 @@ function PatientEntry({ navigate, onToast }) {
       .reduce((sum, t) => sum + Number(t.price || 0), 0);
   }, [tests, selectedTests]);
 
-  function submit(e) {
-    e.preventDefault();
-
+  function submitWithAction(actionTarget = "patients") {
     if (!form.name || !form.phone || !form.age || !form.gender) {
-      alert("Please complete the required patient details.");
+      alert("Please complete the required patient demographics (Name, Phone, Age, Gender).");
       return;
     }
 
     if (!selectedTests.length) {
-      alert("Please select at least one laboratory test.");
+      alert("Please select at least one laboratory test or clinical package.");
       return;
     }
 
     const currentPatients = read(STORAGE.patients, DEFAULT_PATIENTS);
+    const newPatId = nextId("PAT", currentPatients);
     const patient = {
-      id: nextId("PAT", currentPatients),
+      id: newPatId,
       ...form,
       date: today(),
       tests: selectedTests,
@@ -1708,10 +2171,11 @@ function PatientEntry({ navigate, onToast }) {
 
     // Auto create report
     const reports = read(STORAGE.reports, DEFAULT_REPORTS);
+    const newReportId = nextId("REP", reports);
     write(STORAGE.reports, [
       ...reports,
       {
-        id: nextId("REP", reports),
+        id: newReportId,
         patientId: patient.id,
         doctor: form.referredBy || "Self",
         date: today(),
@@ -1735,219 +2199,404 @@ function PatientEntry({ navigate, onToast }) {
       },
     ]);
 
-    setSaved(true);
-    onToast(`Patient ${patient.name} registered successfully! ID: ${patient.id}`);
-
-    setTimeout(() => {
-      navigate("/patients");
-    }, 800);
+    if (actionTarget === "open_report") {
+      onToast(`Patient ${patient.name} registered! Opening lab report...`, "success");
+      navigate(`/reports?patient=${patient.id}`);
+    } else if (actionTarget === "add_next") {
+      onToast(`Patient ${patient.name} registered! Ready for next patient.`, "success");
+      resetAll();
+    } else {
+      onToast(`Patient ${patient.name} registered successfully! ID: ${patient.id}`, "success");
+      setTimeout(() => {
+        navigate("/patients");
+      }, 500);
+    }
   }
 
   return (
     <>
       <PageHeader
-        title="Patient Entry"
-        subtitle="Register a new patient, select lab tests, and generate orders."
+        title="Patient Entry & Registration"
+        subtitle="Modern clinical intake with 1-click test packages, instant search, and direct laboratory routing."
       >
-        <Button onClick={clearAllTests}>
-          <RefreshCw size={14} /> Clear Selection
+        <Button onClick={resetAll}>
+          <RefreshCw size={14} /> Clear Form & Selection
         </Button>
       </PageHeader>
 
-      <form onSubmit={submit}>
-        <div className="card formcard">
-          <div className="sectiontitle">
-            <User />
-            <div>
-              <h3>Patient Demographics</h3>
-              <p>Enter patient personal and contact information.</p>
-            </div>
-          </div>
-
-          <div className="formgrid">
-            <div className="field">
-              <label>Next Patient ID</label>
-              <input value={nextId("PAT", patients)} disabled />
-            </div>
-
-            <div className="field">
-              <label>Full Patient Name *</label>
-              <input
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Rahul Sharma"
-              />
-            </div>
-
-            <div className="field">
-              <label>Phone Number *</label>
-              <input
-                required
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="10-digit mobile number"
-              />
-            </div>
-
-            <div className="field">
-              <label>Age *</label>
-              <input
-                required
-                type="number"
-                value={form.age}
-                onChange={(e) => setForm({ ...form, age: e.target.value })}
-                placeholder="e.g. 35"
-              />
-            </div>
-
-            <div className="field">
-              <label>Gender *</label>
-              <select
-                value={form.gender}
-                onChange={(e) => setForm({ ...form, gender: e.target.value })}
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label>Email Address</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="patient@example.com (optional)"
-              />
-            </div>
-
-            <div className="field">
-              <label>Referred By Doctor</label>
-              <SearchSelect
-                value={form.referredBy}
-                onChange={(value) => setForm({ ...form, referredBy: value })}
-                options={doctorOptions}
-                placeholder="Select Doctor / Self"
-                allowSelf
-              />
-            </div>
-
-            <div className="field">
-              <label>Branch Center</label>
-              <select
-                value={form.branch}
-                onChange={(e) => setForm({ ...form, branch: e.target.value })}
-              >
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.name}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="card formcard" style={{ marginTop: 18 }}>
-          <div className="sectiontitle">
-            <FlaskConical />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3>Test Selection Panel</h3>
-                <span className="badge active" style={{ fontSize: 12 }}>
-                  Selected: {selectedTests.length} tests · Total: {money(calculatedTotal)}
-                </span>
+      <div className="patient-entry-layout">
+        {/* LEFT COLUMN: DEMOGRAPHICS & ORDER ACTIONS */}
+        <div className="patient-entry-left">
+          <div className="card formcard">
+            <div className="sectiontitle" style={{ marginBottom: 14 }}>
+              <User />
+              <div>
+                <h3 style={{ margin: 0 }}>Patient Demographics</h3>
+                <p style={{ margin: "2px 0 0 0" }}>Patient identity and referral details.</p>
               </div>
-              <p>Click any test card to include or remove it from the patient panel.</p>
             </div>
-          </div>
 
-          {[
-            "Clinical Pathology",
-            "Urine Examinations",
-            "Bio Chemistry",
-            "Motion Examination",
-            "Semen Analysis",
-            "Additional Tests",
-          ].map((category) => {
-              const categoryTests = tests.filter(
-                (test) => test.category === category
-              );
-              if (!categoryTests.length) return null;
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="field">
+                <label>System Patient ID</label>
+                <input
+                  value={nextId("PAT", patients)}
+                  disabled
+                  style={{ background: "#f8f3f5", fontWeight: 700, color: "#5b0a1a" }}
+                />
+              </div>
 
-              return (
-                <div key={category} style={{ marginBottom: 20 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <h4 style={{ color: "#5b0a1a", margin: 0 }}>
-                      {category}
-                    </h4>
-                    <button
-                      type="button"
-                      className="tab"
-                      style={{ padding: "3px 8px", fontSize: 10 }}
-                      onClick={() => selectAllInCategory(category)}
-                    >
-                      + Select All {category}
-                    </button>
-                  </div>
+              <div className="field">
+                <label>Full Patient Name *</label>
+                <input
+                  required
+                  autoFocus
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Rahul Sharma"
+                />
+              </div>
 
-                  <div className="quickgrid">
-                    {categoryTests.map((test) => {
-                      const selected = selectedTests.includes(test.id);
-                      return (
-                        <button
-                          type="button"
-                          key={test.id}
-                          className="quick"
-                          style={{
-                            borderColor: selected ? "#8b1730" : undefined,
-                            background: selected ? "#fff0f3" : undefined,
-                          }}
-                          onClick={() => toggleTest(test.id)}
-                        >
-                          {selected ? (
-                            <Check color="#8b1730" size={18} />
-                          ) : (
-                            <FlaskConical size={18} />
-                          )}
-                          <span>
-                            {test.name}
-                            <small>
-                              {test.price ? money(test.price) : "Included"} · {test.unit} ({test.reference})
-                            </small>
-                          </span>
-                        </button>
-                      );
-                    })}
+              <div className="field">
+                <label>Phone Number *</label>
+                <input
+                  required
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="10-digit mobile number"
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 10 }}>
+                <div className="field">
+                  <label>Age *</label>
+                  <input
+                    required
+                    type="number"
+                    value={form.age}
+                    onChange={(e) => setForm({ ...form, age: e.target.value })}
+                    placeholder="e.g. 35"
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Gender *</label>
+                  <div className="gender-pills">
+                    {["Male", "Female", "Other"].map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        className={`gender-pill ${form.gender === g ? "active" : ""}`}
+                        onClick={() => setForm({ ...form, gender: g })}
+                      >
+                        {g === "Male" ? "♂ Male" : g === "Female" ? "♀ Female" : "⚥ Other"}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            }
-          )}
+              </div>
 
-          <div className="notice">
-            <b>{selectedTests.length}</b> laboratory test(s) selected totaling <b>{money(calculatedTotal)}</b>.
-            Saving will automatically create corresponding report and invoice records.
+              <div className="field">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <label style={{ margin: 0 }}>Referred By Doctor</label>
+                  <button
+                    type="button"
+                    className="tab"
+                    style={{ padding: "2px 6px", fontSize: 10 }}
+                    onClick={() => setForm({ ...form, referredBy: "Self" })}
+                  >
+                    Walk-in / Self
+                  </button>
+                </div>
+                <SearchSelect
+                  value={form.referredBy}
+                  onChange={(value) => setForm({ ...form, referredBy: value })}
+                  options={doctorOptions}
+                  placeholder="Select Doctor / Self"
+                  allowSelf
+                />
+              </div>
+
+              <div className="field">
+                <label>Branch Center</label>
+                <select
+                  value={form.branch}
+                  onChange={(e) => setForm({ ...form, branch: e.target.value })}
+                >
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.name}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Email Address (Optional)</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="patient@example.com"
+                />
+              </div>
+            </div>
           </div>
 
-          {saved && (
-            <div className="success">
-              Patient registered successfully! Generating records...
+          {/* INTAKE SUMMARY & FAST ACTIONS */}
+          <div className="card" style={{ marginTop: 14, background: "#fdfafb", border: "1.5px solid #ebd7dc" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <b style={{ color: "#5b0a1a", fontSize: 13 }}>Enrolled Tests Summary</b>
+              <span className="badge active" style={{ fontSize: 12 }}>
+                {selectedTests.length} tests
+              </span>
             </div>
-          )}
 
-          <div className="formactions">
-            <Button onClick={() => navigate("/patients")}>
-              Cancel
-            </Button>
-            <Button primary type="submit">
-              <Check size={16} /> Complete & Register Patient
-            </Button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderTop: "1px dashed #daccd1", borderBottom: "1px dashed #daccd1", marginBottom: 14 }}>
+              <span style={{ fontSize: 13, color: "#66545c" }}>Estimated Total:</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#5b0a1a" }}>{money(calculatedTotal)}</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Button
+                primary
+                type="button"
+                onClick={() => submitWithAction("open_report")}
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  padding: "10px",
+                  background: "#5b0a1a",
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <FileText size={16} /> Complete & Open Lab Report
+              </Button>
+
+              <Button
+                type="button"
+                onClick={() => submitWithAction("add_next")}
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  padding: "9px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Plus size={15} /> Register & Add Next Patient
+              </Button>
+
+              <Button
+                type="button"
+                onClick={() => navigate("/patients")}
+                style={{ width: "100%", justifyContent: "center", fontSize: 12 }}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
-      </form>
+
+        {/* RIGHT COLUMN: TEST SELECTION SUITE */}
+        <div className="patient-entry-right">
+          <div className="card formcard">
+            {/* Header: Packages */}
+            <div className="sectiontitle" style={{ marginBottom: 12 }}>
+              <FlaskConical />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3 style={{ margin: 0 }}>Laboratory Test Suite</h3>
+                  <span style={{ fontSize: 11, color: "#7a6870" }}>
+                    {tests.length} Total Laboratory Tests Available
+                  </span>
+                </div>
+                <p style={{ margin: "2px 0 0 0" }}>
+                  Pick standard clinical packages with 1 click, or search and pick individual tests.
+                </p>
+              </div>
+            </div>
+
+            {/* 1-Click Clinical Packages Grid */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <b style={{ fontSize: 11.5, color: "#5b0a1a" }}>1-Click Clinical Packages / Profiles:</b>
+                <span style={{ fontSize: 10.5, color: "#888" }}>Tap any card to toggle package</span>
+              </div>
+              <div className="profile-cards-grid">
+                {CLINICAL_PROFILES.map((pkg) => {
+                  const isAllSelected = pkg.testIds.every((id) => selectedTests.includes(id));
+                  const partialCount = pkg.testIds.filter((id) => selectedTests.includes(id)).length;
+                  return (
+                    <div
+                      key={pkg.id}
+                      className={`profile-card ${isAllSelected ? "active" : ""}`}
+                      onClick={() => togglePackage(pkg)}
+                    >
+                      <div className="profile-card-top">
+                        <span className="profile-card-title">{pkg.icon} {pkg.name}</span>
+                        <span className="profile-card-badge">
+                          {isAllSelected ? "✓ Added" : partialCount > 0 ? `${partialCount}/${pkg.testIds.length}` : `+ ${pkg.badge}`}
+                        </span>
+                      </div>
+                      <div className="profile-card-desc">{pkg.fullname}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Search Bar & Action Controls */}
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+              <div className="search" style={{ flex: 1, minWidth: 240, margin: 0 }}>
+                <Search size={16} />
+                <input
+                  placeholder="Search 70+ lab tests by name, code, or department..."
+                  value={testSearch}
+                  onChange={(e) => setTestSearch(e.target.value)}
+                  style={{ fontSize: 13, padding: "7px 10px" }}
+                />
+                {testSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setTestSearch("")}
+                    style={{ border: 0, background: "transparent", cursor: "pointer" }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  className="tab"
+                  style={{ padding: "6px 11px", fontSize: 11 }}
+                  onClick={selectAllInCurrentCategory}
+                >
+                  + Select All in Category
+                </button>
+                <button
+                  type="button"
+                  className="tab"
+                  style={{ padding: "6px 11px", fontSize: 11 }}
+                  onClick={clearAllTests}
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+
+            {/* Department Filter Tabs */}
+            <div className="dept-filter-tabs">
+              {categories.map((cat) => {
+                const count = cat === "All" ? tests.length : tests.filter((t) => t.category === cat).length;
+                return (
+                  <button
+                    type="button"
+                    key={cat}
+                    className={`dept-filter-tab ${activeCategory === cat ? "active" : ""}`}
+                    onClick={() => setActiveCategory(cat)}
+                  >
+                    {cat} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected Tests Basket */}
+            {selectedTests.length > 0 && (
+              <div className="test-chips-basket">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <b style={{ fontSize: 11.5, color: "#5b0a1a" }}>
+                    Selected Tests Basket ({selectedTests.length} tests · Total: {money(calculatedTotal)})
+                  </b>
+                  <button
+                    type="button"
+                    onClick={clearAllTests}
+                    style={{ border: 0, background: "transparent", color: "#a12929", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="test-chips-list">
+                  {selectedTests.map((id) => {
+                    const t = tests.find((x) => x.id === id);
+                    if (!t) return null;
+                    return (
+                      <span key={id} className="test-chip">
+                        <span>{t.name}</span>
+                        <small style={{ color: "#7a6870", fontSize: 9.5 }}>{t.price ? money(t.price) : "Free"}</small>
+                        <button
+                          type="button"
+                          className="test-chip-remove"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTest(id);
+                          }}
+                          title={`Remove ${t.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Individual Tests Grid */}
+            <div className="tests-picker-grid" style={{ maxHeight: 460 }}>
+              {filteredTests.map((test) => {
+                const selected = selectedTests.includes(test.id);
+                return (
+                  <div
+                    key={test.id}
+                    className={`test-picker-card ${selected ? "selected" : ""}`}
+                    onClick={() => toggleTest(test.id)}
+                  >
+                    <div style={{ marginTop: 2 }}>
+                      {selected ? (
+                        <div style={{ width: 18, height: 18, borderRadius: 4, background: "#8b1730", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Check size={12} color="#fff" />
+                        </div>
+                      ) : (
+                        <div style={{ width: 18, height: 18, borderRadius: 4, border: "1.5px solid #dcced3", background: "#fff" }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: 800, fontSize: 12, color: "#380a15", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {test.name}
+                        </span>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#8b1730", marginLeft: 4 }}>
+                          {test.price ? money(test.price) : "Free"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 9.5, color: "#7a6870", marginTop: 2, display: "flex", gap: 6 }}>
+                        <span style={{ background: "#f5edf0", padding: "1px 4px", borderRadius: 3, fontWeight: 600 }}>{test.id}</span>
+                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{test.category}</span>
+                      </div>
+                      {test.reference && (
+                        <div style={{ fontSize: 9, color: "#888", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          Ref: {test.reference}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
@@ -1960,10 +2609,12 @@ function Patients({ navigate, onToast }) {
   const [patients, setPatients] = useState(() =>
     read(STORAGE.patients, DEFAULT_PATIENTS)
   );
+  const tests = read(STORAGE.tests, DEFAULT_TESTS);
   const [search, setSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [editingPatient, setEditingPatient] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // stores patient id to delete
+  const [managingPatientTests, setManagingPatientTests] = useState(null);
 
   const filtered = patients.filter((patient) =>
     `${patient.name} ${patient.id} ${patient.phone} ${patient.branch}`
@@ -1989,6 +2640,32 @@ function Patients({ navigate, onToast }) {
     write(STORAGE.patients, next);
     setEditingPatient(null);
     onToast(`Patient ${editingPatient.name} updated successfully!`);
+  }
+
+  function handleSavePatientTestsFromList(newTestIds) {
+    if (!managingPatientTests) return;
+    const updated = patients.map((p) =>
+      p.id === managingPatientTests.id ? { ...p, tests: newTestIds } : p
+    );
+    setPatients(updated);
+    write(STORAGE.patients, updated);
+
+    // Update bill
+    const allTests = read(STORAGE.tests, DEFAULT_TESTS);
+    const newTotal = allTests
+      .filter((t) => newTestIds.includes(t.id))
+      .reduce((sum, t) => sum + Number(t.price || 0), 0);
+    const curBills = read(STORAGE.bills, DEFAULT_BILLS);
+    const updatedBills = curBills.map((b) =>
+      b.patientId === managingPatientTests.id ? { ...b, amount: newTotal } : b
+    );
+    write(STORAGE.bills, updatedBills);
+
+    onToast(
+      `Tests updated for ${managingPatientTests.name}! (${newTestIds.length} tests enrolled)`,
+      "success"
+    );
+    setManagingPatientTests(null);
   }
 
   return (
@@ -2041,50 +2718,75 @@ function Patients({ navigate, onToast }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((patient) => (
-                <tr key={patient.id}>
-                  <td>
-                    <b>{patient.name}</b>
-                    <small>{patient.id}</small>
-                  </td>
-                  <td>{patient.phone}</td>
-                  <td>
-                    {patient.age} yrs / {patient.gender}
-                  </td>
-                  <td>{patient.referredBy || "Self"}</td>
-                  <td>{patient.branch}</td>
-                  <td>
-                    <span className="badge">{patient.tests?.length || 0} tests</span>
-                  </td>
-                  <td>{patient.date}</td>
-                  <td className="actions">
-                    <button
-                      title="View Details"
-                      onClick={() => setSelectedPatient(patient)}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      title="Edit Patient"
-                      onClick={() => setEditingPatient({ ...patient })}
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button
-                      title="View Reports"
-                      onClick={() => navigate(`/reports?patient=${patient.id}`)}
-                    >
-                      <FileText size={16} />
-                    </button>
-                    <button
-                      title="Delete Patient"
-                      onClick={() => setConfirmDelete(patient.id)}
-                    >
-                      <Trash2 size={16} color="#a12929" />
-                    </button>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "40px 16px", color: "#666" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#5b0a1a", marginBottom: "6px" }}>
+                      {search ? "No matching patients found" : "No patients registered yet"}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#888", marginBottom: "14px" }}>
+                      {search ? "Try searching with a different name, phone, or ID." : "Start fresh by registering your first patient."}
+                    </div>
+                    {!search && (
+                      <Button primary onClick={() => navigate("/patients/new")}>
+                        <Plus size={15} /> Add First Patient (PAT001)
+                      </Button>
+                    )}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((patient) => (
+                  <tr key={patient.id}>
+                    <td>
+                      <b>{patient.name}</b>
+                      <small>{patient.id}</small>
+                    </td>
+                    <td>{patient.phone}</td>
+                    <td>
+                      {patient.age} yrs / {patient.gender}
+                    </td>
+                    <td>{patient.referredBy || "Self"}</td>
+                    <td>{patient.branch}</td>
+                    <td>
+                      <span className="badge">{patient.tests?.length || 0} tests</span>
+                    </td>
+                    <td>{patient.date}</td>
+                    <td className="actions">
+                      <button
+                        title="Manage / Add Tests"
+                        style={{ color: "#0e5a3a" }}
+                        onClick={() => setManagingPatientTests(patient)}
+                      >
+                        <FlaskConical size={16} />
+                      </button>
+                      <button
+                        title="View Details"
+                        onClick={() => setSelectedPatient(patient)}
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        title="Edit Patient"
+                        onClick={() => setEditingPatient({ ...patient })}
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button
+                        title="View Reports"
+                        onClick={() => navigate(`/reports?patient=${patient.id}`)}
+                      >
+                        <FileText size={16} />
+                      </button>
+                      <button
+                        title="Delete Patient"
+                        onClick={() => setConfirmDelete(patient.id)}
+                      >
+                        <Trash2 size={16} color="#a12929" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -2140,7 +2842,17 @@ function Patients({ navigate, onToast }) {
               </div>
             </div>
 
-            <div className="formactions" style={{ marginTop: 15 }}>
+            <div className="formactions" style={{ marginTop: 15, flexWrap: "wrap" }}>
+              <Button
+                style={{ background: "#0e5a3a", color: "#fff", display: "inline-flex", alignItems: "center", gap: 5 }}
+                onClick={() => {
+                  const p = selectedPatient;
+                  setSelectedPatient(null);
+                  setManagingPatientTests(p);
+                }}
+              >
+                <FlaskConical size={15} /> Manage / Add Tests
+              </Button>
               <Button
                 primary
                 onClick={() => {
@@ -2285,6 +2997,16 @@ function Patients({ navigate, onToast }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MANAGE TESTS MODAL */}
+      {managingPatientTests && (
+        <ManageTestsModal
+          patient={managingPatientTests}
+          tests={tests}
+          onClose={() => setManagingPatientTests(null)}
+          onSave={handleSavePatientTestsFromList}
+        />
       )}
     </>
   );
@@ -3202,19 +3924,205 @@ function TestMaster({ onToast }) {
    PAGE: REPORTS WORKFLOW & VIEWER
    ========================================================= */
 
-function Reports({ onToast }) {
-  const patients = read(STORAGE.patients, DEFAULT_PATIENTS);
+/* =========================================================
+   AUTHENTIC CLINICAL REPORT CONFIG & FORMATTERS (Page1.jpg)
+   ========================================================= */
+
+const CLINICAL_CATEGORY_HEADERS = {
+  "Clinical Pathology": "HAEMATOLOGY REPORT",
+  "Bio Chemistry": "BIO-CHEMISTRY REPORT",
+  "Urine Examinations": "COMPLETE URINE EXAMINATION REPORT",
+  "Motion Examination": "MOTION EXAMINATION REPORT",
+  "Semen Analysis": "SEMEN ANALYSIS REPORT",
+  "Additional Tests": "SPECIAL INVESTIGATION REPORT",
+};
+
+function formatCategoryHeader(categoryName) {
+  if (!categoryName) return "LABORATORY INVESTIGATION REPORT";
+  return CLINICAL_CATEGORY_HEADERS[categoryName] || `${categoryName.toUpperCase()} REPORT`;
+}
+
+const CLINICAL_TEST_CONFIG = {
+  // Haematology
+  "H.B.": {
+    displayName: "Haemoglobin",
+    method: "",
+    unit: "gms %",
+    referenceLines: [
+      "Male:    14 - 17 gms %",
+      "Female: 12 - 15 gms %",
+      "Child :  11.0 - 14.0 gms %",
+    ],
+  },
+  "Haemoglobin": {
+    displayName: "Haemoglobin",
+    method: "",
+    unit: "gms %",
+    referenceLines: [
+      "Male:    14 - 17 gms %",
+      "Female: 12 - 15 gms %",
+      "Child :  11.0 - 14.0 gms %",
+    ],
+  },
+  "TRBC": {
+    displayName: "Total R.B.C. Count",
+    method: "",
+    unit: "mil/cu.mm",
+    referenceLines: ["4.5 - 5.5 mil/cu.mm"],
+  },
+  "TWBC": {
+    displayName: "Total W.B.C. Count",
+    method: "",
+    unit: "/cu.mm",
+    referenceLines: ["4,000 - 11,000 /cu.mm"],
+  },
+  "Platelet Count": {
+    displayName: "Platelet Count",
+    method: "",
+    unit: "Lakhs/cu.mm",
+    referenceLines: ["1.5 - 4.5 Lakhs/cu.mm"],
+  },
+  // Bio-Chemistry
+  "Urea": {
+    displayName: "Blood Urea",
+    method: "",
+    unit: "mg/dl",
+    referenceLines: ["10  -  45  mg/dl"],
+  },
+  "Blood Urea": {
+    displayName: "Blood Urea",
+    method: "",
+    unit: "mg/dl",
+    referenceLines: ["10  -  45  mg/dl"],
+  },
+  "Creatinine": {
+    displayName: "Serum Creatinine",
+    method: "( Method : jaffe's )",
+    unit: "mg/dl",
+    referenceLines: [
+      "Male: 0.6 - 1.5 mg/dl",
+      "Female: 0.6 - 1.2 mg/dl",
+      "Children: 0.2 - 0.8 mg/dl",
+    ],
+  },
+  "Serum Creatinine": {
+    displayName: "Serum Creatinine",
+    method: "( Method : jaffe's )",
+    unit: "mg/dl",
+    referenceLines: [
+      "Male: 0.6 - 1.5 mg/dl",
+      "Female: 0.6 - 1.2 mg/dl",
+      "Children: 0.2 - 0.8 mg/dl",
+    ],
+  },
+  "Serum Glucose (R)": {
+    displayName: "Random Blood Sugar",
+    method: "( Method : GOD-POD )",
+    unit: "mg/dl",
+    referenceLines: ["80  -  140  mg/dl"],
+  },
+  "Random Blood Sugar": {
+    displayName: "Random Blood Sugar",
+    method: "( Method : GOD-POD )",
+    unit: "mg/dl",
+    referenceLines: ["80  -  140  mg/dl"],
+  },
+  "Serum Glucose (F)": {
+    displayName: "Fasting Blood Sugar",
+    method: "( Method : GOD-POD )",
+    unit: "mg/dl",
+    referenceLines: ["70  -  110  mg/dl"],
+  },
+  "Fasting Blood Sugar": {
+    displayName: "Fasting Blood Sugar",
+    method: "( Method : GOD-POD )",
+    unit: "mg/dl",
+    referenceLines: ["70  -  110  mg/dl"],
+  },
+  "Serum Glucose (PP)": {
+    displayName: "Post Prandial Blood Sugar",
+    method: "( Method : GOD-POD )",
+    unit: "mg/dl",
+    referenceLines: ["Up to 140 mg/dl"],
+  },
+  "Post Prandial Blood Sugar": {
+    displayName: "Post Prandial Blood Sugar",
+    method: "( Method : GOD-POD )",
+    unit: "mg/dl",
+    referenceLines: ["Up to 140 mg/dl"],
+  },
+  "Cholesterol": {
+    displayName: "Serum Cholesterol",
+    method: "( Method : CHOD-PAP )",
+    unit: "mg/dl",
+    referenceLines: ["130 - 250 mg/dl"],
+  },
+  "Bilirubin Total": {
+    displayName: "Serum Bilirubin (Total)",
+    method: "( Method : Malloy & Evelyn )",
+    unit: "mg/dl",
+    referenceLines: ["0.2 - 1.2 mg/dl"],
+  },
+};
+
+function formatLabDate(dateStr) {
+  if (!dateStr) return "21-Sep-2026";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const mon = months[d.getMonth()];
+    const yr = d.getFullYear();
+    return `${day}-${mon}-${yr}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function Reports({ onToast, navigate }) {
+  const [patients, setPatients] = useState(() =>
+    read(STORAGE.patients, DEFAULT_PATIENTS)
+  );
+  const [showManageTestsModal, setShowManageTestsModal] = useState(false);
   const tests = read(STORAGE.tests, DEFAULT_TESTS);
   const [reports, setReports] = useState(() =>
     read(STORAGE.reports, DEFAULT_REPORTS)
   );
   const settings = read(STORAGE.settings, {
     labName: "TAZ DIAGNOSTIC",
-    phone: "040-24567890",
-    email: "info@tazdiagnostic.com",
-    address: "Hyderabad, Telangana",
+    phone: "9440985131",
+    email: "tazdiagnostic@gmail.com",
+    address: "Dr No: 8-200 RAJKUMAR SILKS, Near Raj Kumar Silks Street, Main Road, Tallapudi, Rajahmundry-534341, Andhra Pradesh",
     footerNote: "This report is generated electronically.",
   });
+
+  function handleSavePatientTests(newTestIds) {
+    if (!patient) return;
+    const updatedPatients = patients.map((p) =>
+      p.id === patient.id ? { ...p, tests: newTestIds } : p
+    );
+    setPatients(updatedPatients);
+    write(STORAGE.patients, updatedPatients);
+
+    // Update bill in STORAGE.bills
+    const allTests = read(STORAGE.tests, DEFAULT_TESTS);
+    const newBillTotal = allTests
+      .filter((t) => newTestIds.includes(t.id))
+      .reduce((sum, t) => sum + Number(t.price || 0), 0);
+
+    const curBills = read(STORAGE.bills, DEFAULT_BILLS);
+    const updatedBills = curBills.map((b) =>
+      b.patientId === patient.id ? { ...b, amount: newBillTotal } : b
+    );
+    write(STORAGE.bills, updatedBills);
+
+    setShowManageTestsModal(false);
+    onToast(
+      `Tests updated for ${patient.name}! Now enrolled in ${newTestIds.length} test(s).`,
+      "success"
+    );
+  }
 
   const [filterTab, setFilterTab] = useState("All");
 
@@ -3239,6 +4147,15 @@ function Reports({ onToast }) {
     if (filterTab === "Completed") return r.status === "Completed";
     return true;
   });
+
+  useEffect(() => {
+    if (filteredReports.length > 0) {
+      const exists = filteredReports.some((r) => r.id === selectedReport);
+      if (!exists) {
+        setSelectedReport(filteredReports[0].id);
+      }
+    }
+  }, [filterTab, filteredReports, selectedReport]);
 
   const report = reports.find((r) => r.id === selectedReport);
   const patient = patients.find((p) => p.id === report?.patientId);
@@ -3280,6 +4197,107 @@ function Reports({ onToast }) {
     if (availableGroups.includes(activeGroupPage)) return [activeGroupPage];
     return availableGroups;
   }, [activeGroupPage, availableGroups]);
+
+  // Build continuous pages based on selected/assigned tests and their entered results
+  const continuousReportData = useMemo(() => {
+    if (!report || !patient) return { pages: [], totalTests: 0 };
+
+    // 1. All tests assigned to patient in order:
+    const assignedIds = patient.tests || [];
+    const assignedTests = assignedIds
+      .map((id) => tests.find((t) => t.id === id))
+      .filter(Boolean);
+
+    // 2. Extra tests that have results:
+    const extraTests = tests.filter((t) => {
+      if (assignedIds.includes(t.id)) return false;
+      const val = report.results?.[t.id];
+      return val !== undefined && val !== null && String(val).trim() !== "";
+    });
+
+    const combinedTests = [...assignedTests, ...extraTests];
+
+    // 3. Keep all prescribed tests for patient (+ extra tests that have results) when panelMode === "ordered", or all tests when panelMode === "full"
+    const activeTests = (panelMode === "full"
+      ? tests
+      : combinedTests
+    );
+
+    if (activeTests.length === 0) {
+      return {
+        pages: [
+          {
+            pageNumber: 1,
+            items: [],
+            isFirstPage: true,
+          },
+        ],
+        totalTests: 0,
+      };
+    }
+
+    // 4. Create an item stream with category group headers
+    const itemStream = [];
+    let lastCategory = null;
+
+    activeTests.forEach((t) => {
+      if (t.category && t.category !== lastCategory) {
+        lastCategory = t.category;
+        itemStream.push({ type: "category", categoryName: lastCategory });
+      }
+      itemStream.push({ type: "test", test: t });
+    });
+
+    // 5. Intelligent auto-cut pagination
+    // Page 1 capacity: 20 row units (Clinical Pathology + Urine fit cleanly; overflow flows to Page 2, Page 3, etc.)
+    // Subsequent pages capacity: 24 row units
+    const PAGE_1_CAP = 20;
+    const SUB_PAGE_CAP = 24;
+
+    const pages = [];
+    let currentPageItems = [];
+    let currentUnits = 0;
+    let pageNum = 1;
+    let maxCap = PAGE_1_CAP;
+
+    itemStream.forEach((item) => {
+      const isCat = item.type === "category";
+      const isOrphanCat = isCat && (currentUnits + 2 > maxCap);
+
+      if ((currentUnits + 1 > maxCap || isOrphanCat) && currentPageItems.length > 0) {
+        pages.push({
+          pageNumber: pageNum,
+          items: currentPageItems,
+          isFirstPage: pageNum === 1,
+        });
+        pageNum++;
+        currentPageItems = [];
+        currentUnits = 0;
+        maxCap = SUB_PAGE_CAP;
+      }
+
+      currentPageItems.push(item);
+      currentUnits += 1;
+    });
+
+    if (currentPageItems.length > 0) {
+      pages.push({
+        pageNumber: pageNum,
+        items: currentPageItems,
+        isFirstPage: pageNum === 1,
+      });
+    }
+
+    return { pages, totalTests: activeTests.length };
+  }, [report, patient, tests, panelMode]);
+
+  const { pages: continuousPages, totalTests } = continuousReportData;
+  const totalPages = continuousPages.length || 1;
+
+  const displayedPages = useMemo(() => {
+    if (activeGroupPage === "All") return continuousPages;
+    return continuousPages.filter((p) => String(p.pageNumber) === activeGroupPage);
+  }, [activeGroupPage, continuousPages]);
 
   const resultTests = useMemo(() => {
     const base =
@@ -3421,16 +4439,12 @@ function Reports({ onToast }) {
       box-sizing: border-box !important;
       box-shadow: none !important;
       margin: 0 !important;
-      padding: 12mm 14mm !important;
+      padding: 8mm 14mm 10mm 14mm !important;
+      border: 1.5px solid #8b1730 !important;
       display: flex !important;
       flex-direction: column !important;
-      justify-content: space-between !important;
-    }
-
-    /* Each populated group = exactly one A4 page */
-    .paper.report-sheet {
-      page-break-after: always !important;
-      break-after: page !important;
+      justify-content: flex-start !important;
+      background: #ffffff !important;
     }
 
     .paper.report-sheet:last-child {
@@ -3438,40 +4452,47 @@ function Reports({ onToast }) {
       break-after: avoid !important;
     }
 
-    /* Table is compact — does NOT stretch to fill page.
-       Footer anchors to bottom via justify-content: space-between on parent. */
-    .paper.report-sheet .report-section {
-      flex: 0 0 auto !important;
-    }
-
-    .paper.report-sheet .report-bottom {
+    .report-sheet-bottom {
       margin-top: auto !important;
     }
 
-    /* Full color for dept-banner, section heading */
-    .paper.report-sheet .dept-banner h1 {
-      background: #5b0a1a !important; color: #ffffff !important;
-      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    .report-clinical-table th {
+      color: #5b0a1a !important;
+      font-size: 10.5px !important;
+      font-weight: 800 !important;
     }
-    .paper.report-sheet .report-section h3 {
-      background: #5b0a1a !important; color: #ffffff !important;
-      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    .report-clinical-table .cat-heading-row td {
+      color: #5b0a1a !important;
+      font-size: 11.5px !important;
+      font-weight: 900 !important;
+      text-align: center !important;
+      background: transparent !important;
     }
-    .paper.report-sheet .report-section table th {
-      background: #f6edf0 !important; color: #4c1421 !important;
-      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    .report-clinical-table .test-name-text,
+    .report-clinical-table .col-unit {
+      color: #5b0a1a !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
-    .paper.report-sheet .report-section table tr:nth-child(even) td {
-      background: #fcf9fa !important;
-      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    .report-clinical-table .test-method-text,
+    .report-clinical-table .col-colon,
+    .report-clinical-table .col-ref {
+      color: #7a1126 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
-    .paper.report-sheet .report-section table .badge.completed {
-      background: #e4f5ec !important; color: #16764f !important;
-      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    .report-clinical-table .result-val-text {
+      color: #111111 !important;
+      font-weight: 800 !important;
     }
-    .paper.report-sheet .patient-box {
-      background: #fdfafb !important;
-      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+
+    .taz-ref-top-left-tab, .taz-ref-top-right-tab, .taz-ref-banner, .taz-ref-patient-tab, .taz-ref-bottom-accent-bar {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .taz-ref-patient-card, .taz-ref-icon-circle, .taz-ref-status-badge {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
     /* No screen-only chrome */
@@ -3544,6 +4565,25 @@ function Reports({ onToast }) {
       >
         <Button onClick={() => setShowCreateReport(true)}>
           <Plus size={16} /> New Report
+        </Button>
+        <Button
+          onClick={() => {
+            if (!patient) {
+              onToast("Please select a report first to manage tests.", "warning");
+              return;
+            }
+            setShowManageTestsModal(true);
+          }}
+          style={{
+            background: "#0e5a3a",
+            color: "#ffffff",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontWeight: 700,
+          }}
+        >
+          <FlaskConical size={16} /> + Add / Manage Tests
         </Button>
         <Button
           primary
@@ -3658,7 +4698,22 @@ function Reports({ onToast }) {
                   <h3>Result Entry — {patient.name} ({report.id})</h3>
                   <p>Input and modify test values. Reference values are populated from Test Master.</p>
                 </div>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                  <Button
+                    onClick={() => setShowManageTestsModal(true)}
+                    style={{
+                      background: "#0e5a3a",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      padding: "4px 10px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <FlaskConical size={14} /> + Add / Manage Tests ({selectedTests.length})
+                  </Button>
                   <button
                     type="button"
                     className={`tab ${resultScope === "all" ? "active" : ""}`}
@@ -3815,7 +4870,7 @@ function Reports({ onToast }) {
                     </>
                   ) : (
                     <>
-                      <Download size={15} /> Save into PDF ({displayedGroups.length} A4 {displayedGroups.length === 1 ? "Page" : "Pages"})
+                      <Download size={15} /> Save into PDF ({totalPages} A4 {totalPages === 1 ? "Page" : "Pages"})
                     </>
                   )}
                 </button>
@@ -3837,80 +4892,47 @@ function Reports({ onToast }) {
               </div>
             </div>
 
-            {/* Department Sheet Navigation Tabs */}
-            <div className="tabs no-print" style={{ width: "210mm", maxWidth: "100%", marginBottom: "18px", flexWrap: "wrap" }}>
+            {/* Continuous Page Navigation Tabs */}
+            <div className="tabs no-print" style={{ width: "210mm", maxWidth: "100%", marginBottom: "18px", flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 className={`tab ${activeGroupPage === "All" ? "active" : ""}`}
                 onClick={() => setActiveGroupPage("All")}
               >
-                All Pages ({availableGroups.length} Sheets)
+                All Pages ({totalPages} {totalPages === 1 ? "Sheet" : "Sheets"})
               </button>
-              {availableGroups.map((grp, idx) => (
+              {continuousPages.map((pg) => (
                 <button
                   type="button"
-                  key={grp}
-                  className={`tab ${activeGroupPage === grp ? "active" : ""}`}
-                  onClick={() => setActiveGroupPage(grp)}
+                  key={pg.pageNumber}
+                  className={`tab ${activeGroupPage === String(pg.pageNumber) ? "active" : ""}`}
+                  onClick={() => setActiveGroupPage(String(pg.pageNumber))}
                 >
-                  Page {idx + 1}: {grp}
+                  Page {pg.pageNumber} of {totalPages}
                 </button>
               ))}
+
+              <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#6b1426", fontWeight: 700, padding: "4px 10px", background: "#fdf4f6", borderRadius: "14px", border: "1px solid #ebd3da" }}>
+                <Check size={14} color="#16764f" /> {totalTests} Tests · Continuous Auto-Pagination
+              </div>
             </div>
 
             {/* A4 REPORT SHEETS CONTAINER */}
             <div className="report-sheets-container">
-              {(() => {
-                // Build data-driven active sheets:
-                // - For EACH group in displayedGroups
-                // - Find tests for that group that are assigned to the patient
-                // - From those, keep ONLY the ones that have an ACTUAL result entered
-                // - If zero results → skip the group entirely (no blank page)
-
-                const activeSheets = displayedGroups
-                  .map((groupName) => {
-                    const allInGrp = tests.filter((t) => t.category === groupName);
-
-                    // Which tests are relevant for this patient?
-                    const patientAssigned =
-                      panelMode === "ordered" && patient?.tests?.length
-                        ? allInGrp.filter((t) => patient.tests.includes(t.id))
-                        : allInGrp;
-
-                    // From those, keep only tests with an actual entered result
-                    const testsWithResults = patientAssigned.filter(
-                      (t) => {
-                        const val = report.results?.[t.id];
-                        return val !== undefined && val !== null && String(val).trim() !== "";
-                      }
-                    );
-
-                    return { groupName, groupTests: patientAssigned, resultTests: testsWithResults };
-                  })
-                  .filter((item) => {
-                    // Skip group if no results have been entered
-                    return item.resultTests.length > 0;
-                  });
-
-                const totalPages = activeSheets.length || 1;
-
-                if (activeSheets.length === 0) {
-                  return (
-                    <div className="card empty" style={{ maxWidth: "210mm", margin: "40px auto", padding: "40px", textAlign: "center" }}>
-                      <h3 style={{ color: "#5b0a1a", marginBottom: "8px" }}>No Results Entered Yet</h3>
-                      <p style={{ color: "#666", fontSize: "13px" }}>
-                        Enter test result values in the Result Entry form above, then the report pages will appear here automatically.
-                      </p>
-                    </div>
-                  );
-                }
-
-                return activeSheets.map(({ groupName, resultTests: pageTests }, idx) => {
-                  const pageNum = idx + 1;
+              {continuousPages.length === 0 ? (
+                <div className="card empty" style={{ maxWidth: "210mm", margin: "40px auto", padding: "40px", textAlign: "center" }}>
+                  <h3 style={{ color: "#5b0a1a", marginBottom: "8px" }}>No Results Entered Yet</h3>
+                  <p style={{ color: "#666", fontSize: "13px" }}>
+                    Enter test result values in the Result Entry form above, then the report pages will appear here automatically.
+                  </p>
+                </div>
+              ) : (
+                displayedPages.map(({ pageNumber, items, isFirstPage }) => {
+                  const isLastPage = pageNumber === totalPages;
 
                   return (
                     <div
-                      key={groupName}
+                      key={`page-${pageNumber}`}
                       style={{
                         width: "100%",
                         display: "flex",
@@ -3919,179 +4941,401 @@ function Reports({ onToast }) {
                       }}
                     >
                       <div className="sheet-page-tag no-print">
-                        <span>PAGE {pageNum} OF {totalPages}</span>
-                        <strong>DEPARTMENT OF {groupName.toUpperCase()} — SEPARATE A4 SHEET</strong>
-                        <span>{pageTests.length} Test{pageTests.length !== 1 ? "s" : ""} with Results</span>
+                        <span>PAGE {pageNumber} OF {totalPages}</span>
+                        <strong>{isFirstPage ? "INITIAL SHEET — CLINICAL DIAGNOSTIC REPORT" : "CONTINUATION SHEET"}</strong>
+                        <span>{items.filter((i) => i.type === "test").length} Test Parameters</span>
                       </div>
 
                       <div
                         className="paper report-sheet"
-                        id={`sheet-${groupName.replace(/\s+/g, "-").toLowerCase()}`}
-                        style={{ pageBreakAfter: idx < activeSheets.length - 1 ? "always" : "avoid" }}
+                        id={`sheet-page-${pageNumber}`}
+                        style={{ pageBreakAfter: !isLastPage ? "always" : "avoid" }}
                       >
-                        {/* 1. Header */}
-                        <div className="paper-head" style={{ justifyContent: "center", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <div className="paper-logo" style={{ justifyContent: "center" }}>
-                            <div className="logo-symbol" style={{ background: "transparent", padding: 0, overflow: "hidden", borderRadius: 8 }}>
-                              <img
-                                src="/microscope.jpg"
-                                alt="Microscope"
-                                style={{ width: 72, height: 72, objectFit: "contain", display: "block" }}
-                              />
-                            </div>
-                            <div className="paper-logo-text" style={{ textAlign: "center" }}>
-                              <div className="paper-brand-title">
-                                <b>TAZ</b> <strong>DIAGNOSTIC</strong>
+                        {/* Top Section: Lab Header + Demographics / Continuation Header + Table */}
+                        <div className="report-sheet-top">
+                          {isFirstPage ? (
+                            <>
+                              {/* 1. TOP MAROON BAR: LAB REPORT | ACCURACY · TRUST · CARE | PAGE X OF Y */}
+                              <div className="taz-ref-top-bar">
+                                <div className="taz-ref-top-left-tab">
+                                  <span className="taz-ref-top-left-title">LAB REPORT</span>
+                                  <span className="taz-ref-top-left-line"></span>
+                                </div>
+                                <div className="taz-ref-top-center-motto">
+                                  ACCURACY &nbsp;|&nbsp; TRUST &nbsp;|&nbsp; CARE
+                                </div>
+                                <div className="taz-ref-top-right-tab">
+                                  <div className="taz-ref-page-pill">
+                                    PAGE {pageNumber} OF {totalPages}
+                                  </div>
+                                </div>
                               </div>
-                              <small>LABORATORY &amp; DIAGNOSTIC CENTRE</small>
-                            </div>
-                          </div>
-                        </div>
 
-                        {/* 2. Department Title Banner */}
-                        <div className="dept-banner">
-                          <h1>DEPARTMENT OF {groupName.toUpperCase()}</h1>
-                          <div className="dept-sub">
-                            LABORATORY INVESTIGATION &amp; CLINICAL FINDINGS REPORT
-                          </div>
-                        </div>
+                              {/* 2. MAIN BRAND & CONTACT & TRUST SECTION */}
+                              <div className="taz-ref-middle-section">
+                                {/* Left: Brand Logo & Title */}
+                                <div className="taz-ref-brand-col">
+                                  <div className="taz-ref-swirl-wrapper">
+                                    <svg viewBox="0 0 100 100" className="taz-ref-swirl-svg">
+                                      <defs>
+                                        <clipPath id={`microClip-${pageNumber}`}>
+                                          <circle cx="50" cy="50" r="33" />
+                                        </clipPath>
+                                      </defs>
+                                      {/* Concentric crescent swirls matching reference graphic */}
+                                      <path
+                                        d="M 50 3 A 47 47 0 0 1 97 50 A 47 47 0 0 1 50 97 C 22 97 4 75 4 48 C 4 39 7 30 12 23 C 9 32 11 43 17 50 C 24 60 36 65 49 65 C 60 65 69 61 75 54 C 81 47 83 37 80 27 C 76 15 64 7 50 7 C 42 7 34 10 27 15 C 33 7 41 3 50 3 Z"
+                                        fill="#670b1e"
+                                      />
+                                      <path
+                                        d="M 6 48 C 6 29 18 14 34 8 C 22 14 14 26 14 41 C 14 59 29 74 47 74 C 61 74 73 65 78 53 C 73 68 59 79 42 79 C 22 79 6 66 6 48 Z"
+                                        fill="#861229"
+                                      />
+                                      {/* Center circle with crisp microscope image */}
+                                      <circle cx="50" cy="50" r="33" fill="#ffffff" stroke="#670b1e" strokeWidth="1.2" />
+                                      <image
+                                        href="/microscope.jpg"
+                                        x="22"
+                                        y="19"
+                                        width="56"
+                                        height="62"
+                                        preserveAspectRatio="xMidYMid meet"
+                                        clipPath={`url(#microClip-${pageNumber})`}
+                                      />
+                                    </svg>
+                                  </div>
 
-                        {/* 3. Patient Demographics Box */}
-                        <div className="patient-box">
-                          <div>
-                            <div>
-                              <b>Patient ID:</b> <span>{patient.id}</span>
-                            </div>
-                            <div>
-                              <b>Patient Name:</b> <strong>{patient.name}</strong>
-                            </div>
-                            <div>
-                              <b>Age / Gender:</b> {patient.age} Yrs / {patient.gender}
-                            </div>
-                            <div>
-                              <b>Phone:</b> {patient.phone}
-                            </div>
-                            <div>
-                              <b>Email:</b> {patient.email || "N/A"}
-                            </div>
-                          </div>
+                                  <div className="taz-ref-brand-info">
+                                    <div className="taz-ref-brand-name">
+                                      <span className="taz-bold">TAZ</span>
+                                      <span className="taz-reg">®</span>
+                                    </div>
+                                    <div className="taz-ref-diag-title">D I A G N O S T I C</div>
+                                    <div className="taz-ref-centre-sub">{settings.subTitle || "LABORATORY & DIAGNOSTIC CENTRE"}</div>
+                                    <div className="taz-ref-accreditation">NABL ACCREDITED MEDICAL LAB &nbsp;|&nbsp; ISO 9001:2015</div>
+                                  </div>
+                                </div>
 
-                          <div>
-                            <div>
-                              <b>Report Code:</b> <span>{report.id}</span>
-                            </div>
-                            <div>
-                              <b>Report Date:</b> {report.date}
-                            </div>
-                            <div>
-                              <b>Referred By:</b> {report.doctor && report.doctor !== "Self" ? report.doctor : "Dr. Ahmed Khan"}
-                            </div>
-                            <div>
-                              <b>Branch:</b> {patient.branch}
-                            </div>
-                            <div>
-                              <b>Status:</b> <em>{report.status}</em>
-                            </div>
-                          </div>
-                        </div>
+                                <div className="taz-ref-vdivider"></div>
 
-                        {/* 4. Test Results — ONLY tests with actual values, no blank rows */}
-                        <div className="report-section">
-                          <div className="report-section-head">
-                            <h3>{groupName.toUpperCase()} — TEST FINDINGS</h3>
-                            <span style={{ fontSize: "8.5px", color: "#6b5860", fontWeight: 700, paddingBottom: 3 }}>
-                              Method: Standard Laboratory Clinical Assay
-                            </span>
-                          </div>
-                          <table>
-                            <thead>
-                              <tr>
-                                <th style={{ width: "42%", textAlign: "left", paddingLeft: "12px" }}>Test / Parameter Description</th>
-                                <th style={{ width: "22%", textAlign: "center" }}>Observed Value</th>
-                                <th style={{ width: "16%", textAlign: "center" }}>Unit</th>
-                                <th style={{ width: "20%", textAlign: "center" }}>Biological Ref. Range</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {pageTests.map((test) => {
-                                const result = report.results?.[test.id];
-                                const isDifferential = ["Polymorphs", "Lymphocytes", "Eosinophils", "Monocytes"].includes(test.name);
-                                const isMicroscopySub = ["OVA", "Cyst's", "Bacteria"].includes(test.name);
-                                const isSemenSub = ["Motile", "Non Motile"].includes(test.name);
-                                const isSubItem = isDifferential || isMicroscopySub || isSemenSub;
+                                {/* Center: Contact Info */}
+                                <div className="taz-ref-contact-col">
+                                  <div className="taz-ref-contact-item">
+                                    <div className="taz-ref-icon-circle">
+                                      <Phone size={11} strokeWidth={2.4} />
+                                    </div>
+                                    <span className="taz-ref-phone-text">{settings.phone || "9440985131"}</span>
+                                  </div>
 
-                                return (
-                                  <tr key={test.id}>
-                                    <td style={{ textAlign: "left", verticalAlign: "middle", paddingLeft: isSubItem ? "20px" : "12px" }}>
-                                      {isSubItem ? (
-                                        <span style={{ fontSize: "13.5px" }}>• {test.name}</span>
-                                      ) : test.name === "DC Count" ? (
-                                        <strong style={{ fontSize: "14px" }}>Differential Count (DC):</strong>
+                                  <div className="taz-ref-contact-item">
+                                    <div className="taz-ref-icon-circle">
+                                      <Mail size={11} strokeWidth={2.4} />
+                                    </div>
+                                    <span className="taz-ref-email-text">{settings.email || "tazdiagnostic@gmail.com"}</span>
+                                  </div>
+
+                                  <div className="taz-ref-contact-item" style={{ alignItems: "flex-start" }}>
+                                    <div className="taz-ref-icon-circle" style={{ marginTop: "1px" }}>
+                                      <MapPin size={11} strokeWidth={2.4} />
+                                    </div>
+                                    <div className="taz-ref-address-text">
+                                      {settings.address ? (
+                                        settings.address.split(", ").map((part, i, arr) => (
+                                          <React.Fragment key={i}>
+                                            {part}{i < arr.length - 1 ? "," : ""}
+                                            {i === 0 || i === 2 ? <br /> : " "}
+                                          </React.Fragment>
+                                        ))
                                       ) : (
-                                        <strong style={{ fontSize: "14px" }}>{test.name}</strong>
+                                        <>
+                                          Dr No: 8-200 RAJKUMAR SILKS,<br />
+                                          Near Raj Kumar Silks Street, Main Road,<br />
+                                          Tallapudi, Rajahmundry - 534341, Andhra Pradesh
+                                        </>
                                       )}
-                                    </td>
-                                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                                      <b style={{ color: "#000000", fontWeight: 800, fontSize: "14px", display: "inline-block" }}>
-                                        {result}
-                                      </b>
-                                    </td>
-                                    <td style={{ textAlign: "center", verticalAlign: "middle", fontSize: "13px" }}>
-                                      {test.unit || "—"}
-                                    </td>
-                                    <td style={{ textAlign: "center", verticalAlign: "middle", fontSize: "12.5px" }}>
-                                      {test.reference || "—"}
+                                    </div>
+                                  </div>
+
+                                  <div className="taz-ref-contact-item">
+                                    <div className="taz-ref-icon-circle">
+                                      <Clock size={11} strokeWidth={2.4} />
+                                    </div>
+                                    <span className="taz-ref-badge-247">24/7 Computerized Automated Lab</span>
+                                  </div>
+                                </div>
+
+                                <div className="taz-ref-vdivider"></div>
+
+                                {/* Right: Trust Badges */}
+                                <div className="taz-ref-trust-col">
+                                  <div className="taz-ref-trust-item">
+                                    <div className="taz-ref-icon-circle">
+                                      <FlaskConical size={11} strokeWidth={2.2} />
+                                    </div>
+                                    <div className="taz-ref-trust-label">
+                                      <span>ACCURATE</span>
+                                      <span>RESULTS</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="taz-ref-trust-item">
+                                    <div className="taz-ref-icon-circle">
+                                      <ShieldCheck size={11} strokeWidth={2.2} />
+                                    </div>
+                                    <div className="taz-ref-trust-label">
+                                      <span>TRUSTED</span>
+                                      <span>CARE</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="taz-ref-trust-item">
+                                    <div className="taz-ref-icon-circle">
+                                      <Users size={11} strokeWidth={2.2} />
+                                    </div>
+                                    <div className="taz-ref-trust-label">
+                                      <span>HEALTHIER</span>
+                                      <span>TOMORROW</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 3. DEPARTMENT / INVESTIGATION BANNER */}
+                              <div className="taz-ref-banner">
+                                <div className="taz-ref-banner-icon-box">
+                                  <FileText size={16} color="#ffffff" strokeWidth={2.2} />
+                                </div>
+                                <div className="taz-ref-banner-vrule"></div>
+                                <div className="taz-ref-banner-text-block">
+                                  <div className="taz-ref-banner-title">
+                                    COMPREHENSIVE CLINICAL LABORATORY INVESTIGATION REPORT
+                                  </div>
+                                  <div className="taz-ref-banner-subtitle">
+                                    DEPARTMENT OF PATHOLOGY &amp; DIAGNOSTICS &nbsp;|&nbsp; COMPUTERIZED ANALYSIS
+                                  </div>
+                                </div>
+                                <div className="taz-ref-banner-wave"></div>
+                              </div>
+
+                              {/* 4. PATIENT INFORMATION BOX */}
+                              <div className="taz-ref-patient-card">
+                                <div className="taz-ref-patient-tab">
+                                  <User size={12} strokeWidth={2.5} />
+                                  <span>PATIENT INFORMATION</span>
+                                </div>
+
+                                <div className="taz-ref-patient-grid">
+                                  {/* Left Column */}
+                                  <div className="taz-ref-pi-col">
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><CreditCard size={13} /></div>
+                                      <div className="taz-ref-pi-name">Patient ID</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val">{patient.id}</div>
+                                    </div>
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><User size={13} /></div>
+                                      <div className="taz-ref-pi-name">Patient Name</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val bold-name">{patient.name}</div>
+                                    </div>
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><Users size={13} /></div>
+                                      <div className="taz-ref-pi-name">Age / Gender</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val">{patient.age} Yrs / {patient.gender}</div>
+                                    </div>
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><Phone size={13} /></div>
+                                      <div className="taz-ref-pi-name">Phone</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val">{patient.phone}</div>
+                                    </div>
+                                  </div>
+
+                                  <div className="taz-ref-pi-vdivider"></div>
+
+                                  {/* Right Column */}
+                                  <div className="taz-ref-pi-col">
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><FileText size={13} /></div>
+                                      <div className="taz-ref-pi-name">Report Code</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val bold-code">{report.id}</div>
+                                    </div>
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><Calendar size={13} /></div>
+                                      <div className="taz-ref-pi-name">Report Date</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val">{formatLabDate(report.date)}</div>
+                                    </div>
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><Stethoscope size={13} /></div>
+                                      <div className="taz-ref-pi-name">Referred By</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val">{patient.referredBy || "Dr. Ahmed Khan"}</div>
+                                    </div>
+                                    <div className="taz-ref-pi-row">
+                                      <div className="taz-ref-pi-icon"><Activity size={13} /></div>
+                                      <div className="taz-ref-pi-name">Status</div>
+                                      <div className="taz-ref-pi-colon">:</div>
+                                      <div className="taz-ref-pi-val">
+                                        <span className={`taz-ref-status-badge ${report.status === "Completed" ? "completed" : "pending"}`}>
+                                          {report.status}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 5. BOTTOM MAROON ACCENT BAR */}
+                              <div className="taz-ref-bottom-accent-bar"></div>
+                            </>
+                          ) : (
+                            <div className="taz-ref-continuation-header">
+                              <div className="taz-ref-top-bar" style={{ marginBottom: "6px" }}>
+                                <div className="taz-ref-top-left-tab">
+                                  <span className="taz-ref-top-left-title">LAB REPORT</span>
+                                  <span className="taz-ref-top-left-line"></span>
+                                </div>
+                                <div className="taz-ref-top-center-motto">
+                                  ACCURACY &nbsp;|&nbsp; TRUST &nbsp;|&nbsp; CARE
+                                </div>
+                                <div className="taz-ref-top-right-tab">
+                                  <div className="taz-ref-page-pill">
+                                    PAGE {pageNumber} OF {totalPages}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="taz-ref-patient-card" style={{ padding: "10px 16px 8px 16px", marginTop: "8px" }}>
+                                <div className="taz-ref-patient-tab">
+                                  <FileText size={11} strokeWidth={2.5} />
+                                  <span>CONTINUATION SHEET · TAZ DIAGNOSTIC</span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10.5px", color: "#333", flexWrap: "wrap", gap: "10px" }}>
+                                  <div><span style={{ color: "#670b1e", fontWeight: 700 }}>Patient ID:</span> <strong>{patient.id}</strong></div>
+                                  <div><span style={{ color: "#670b1e", fontWeight: 700 }}>Patient Name:</span> <strong>{patient.name}</strong></div>
+                                  <div><span style={{ color: "#670b1e", fontWeight: 700 }}>Age/Gender:</span> {patient.age} Yrs / {patient.gender}</div>
+                                  <div><span style={{ color: "#670b1e", fontWeight: 700 }}>Report Code:</span> <strong>{report.id}</strong></div>
+                                  <div><span style={{ color: "#670b1e", fontWeight: 700 }}>Date:</span> {formatLabDate(report.date)}</div>
+                                </div>
+                              </div>
+                              <div className="taz-ref-bottom-accent-bar" style={{ marginBottom: "6px" }}></div>
+                            </div>
+                          )}
+
+                          {/* Test Results Table */}
+                          <div className="report-table-wrapper">
+                            <table className="report-clinical-table">
+                              <thead>
+                                <tr style={{ borderBottom: "1.5px solid #5b0a1a" }}>
+                                  <th style={{ width: "36%", textAlign: "left" }}>TEST DESCRIPTION</th>
+                                  <th style={{ width: "3%", textAlign: "center" }}></th>
+                                  <th style={{ width: "14%", textAlign: "left" }}>RESULT</th>
+                                  <th style={{ width: "15%", textAlign: "left" }}>UNITS</th>
+                                  <th style={{ width: "32%", textAlign: "left" }}>BIOLOGICAL REFERENCE RANGES</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={5} style={{ textAlign: "center", padding: "28px", color: "#666", fontSize: "12px", fontStyle: "italic" }}>
+                                      No test parameters assigned to this report yet. Click "+ Add / Manage Tests" above to add tests.
                                     </td>
                                   </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                ) : (
+                                  items.map((item, rowIdx) => {
+                                    if (item.type === "category") {
+                                      return (
+                                        <tr key={`cat-${item.categoryName}-${rowIdx}`} className="cat-heading-row">
+                                          <td colSpan={5}>
+                                            {formatCategoryHeader(item.categoryName)}
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+
+                                    const test = item.test;
+                                    const result = report.results?.[test.id];
+                                    const cfg = CLINICAL_TEST_CONFIG[test.name] || {};
+                                    const displayName = cfg.displayName || test.name;
+                                  const method = cfg.method || "";
+                                  const unit = cfg.unit || test.unit || "";
+                                  const refLines = cfg.referenceLines || (test.reference ? String(test.reference).split("\n") : []);
+
+                                  return (
+                                    <tr key={test.id} className="test-data-row">
+                                      <td className="col-desc">
+                                        <div className="test-name-text">{displayName}</div>
+                                        {method && <div className="test-method-text">{method}</div>}
+                                      </td>
+                                      <td className="col-colon">:</td>
+                                      <td className="col-result">
+                                        <span className="result-val-text">
+                                          {result !== undefined && result !== null && String(result).trim() !== "" ? result : "—"}
+                                        </span>
+                                      </td>
+                                      <td className="col-unit">{unit}</td>
+                                      <td className="col-ref">
+                                        {refLines.map((line, lIdx) => (
+                                          <div key={lIdx} className="ref-line">{line}</div>
+                                        ))}
+                                      </td>
+                                    </tr>
+                                  );
+                                }))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
 
-                        {/* 5. Bottom: Signatures & Footer */}
-                        <div className="report-bottom">
-                          <div className="signatures">
-                            <div className="signature">
-                              <i>________________________</i>
-                              <b>Lab Pathologist / Technician</b>
-                              <span>Authorized Signatory · Reg. #LP-88421</span>
-                            </div>
-                            <div className="signature">
-                              <i>________________________</i>
-                              <b>Dr. Ahmed Khan</b>
-                              <span>Referring Physician</span>
-                            </div>
-                          </div>
-
-                          <footer>
-                            <div>
-                              <strong>{settings.labName || "TAZ DIAGNOSTIC"}</strong> · Laboratory &amp; Diagnostic Centre
-                              <div style={{ fontSize: "7.5px", color: "#8b777f" }}>
-                                NABL Accredited Medical Lab · State Healthcare Reg. #TS-55421
+                        {/* Bottom Section: Dashed Line + End of Report + Permanent Technician Signature */}
+                        <div className="report-sheet-bottom">
+                          {isLastPage ? (
+                            <>
+                              <div className="report-end-line"></div>
+                              <div className="report-end-text">------- End of the report -------</div>
+                              <div className="report-signature-block">
+                                <div className="sig-container">
+                                  <img
+                                    src={TECHNICIAN_SIGNATURE_SRC}
+                                    alt="Lab Technician Signature"
+                                    className="sig-img"
+                                  />
+                                  <div className="sig-title">Lab Technician</div>
+                                  <div className="sig-center">TAZ DIAGNOSTICS</div>
+                                </div>
                               </div>
+                            </>
+                          ) : (
+                            <div style={{ textAlign: "right", fontSize: "10.5px", fontWeight: 700, color: "#555", padding: "4px 0" }}>
+                              Continued on Page {pageNumber + 1} ...
                             </div>
-                            <div style={{ textAlign: "right" }}>
-                              <div>
-                                Department: <strong>{groupName}</strong>
-                              </div>
-                              <div>
-                                Page <strong>{pageNum} of {totalPages}</strong> (Authorized Medical Report)
-                              </div>
-                            </div>
-                          </footer>
+                          )}
                         </div>
                       </div>
                     </div>
                   );
-                });
-              })()}
+                })
+              )}
             </div>
           </div>
         </>
       ) : (
-        <div className="card empty">
-          No report selected. Choose a report or create a new one above.
+        <div className="card empty" style={{ padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: "16px", fontWeight: 700, color: "#5b0a1a", marginBottom: "8px" }}>
+            No Laboratory Reports Yet
+          </div>
+          <div style={{ fontSize: "13px", color: "#666", maxWidth: "480px", margin: "0 auto 18px" }}>
+            Reports are automatically generated when registering a patient in <strong>Patient Entry</strong>, or you can click <strong>"+ New Report"</strong> above to create one.
+          </div>
+          {navigate && (
+            <Button primary onClick={() => navigate("/patients/new")}>
+              <Plus size={16} /> Go to Patient Entry
+            </Button>
+          )}
         </div>
       )}
 
@@ -4134,6 +5378,16 @@ function Reports({ onToast }) {
             </div>
           </form>
         </div>
+      )}
+
+      {/* MANAGE TESTS MODAL FOR CURRENT REPORT */}
+      {showManageTestsModal && patient && (
+        <ManageTestsModal
+          patient={patient}
+          tests={tests}
+          onClose={() => setShowManageTestsModal(false)}
+          onSave={handleSavePatientTests}
+        />
       )}
     </>
   );
@@ -4383,54 +5637,67 @@ function Messages({ onToast }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((message) => (
-                <tr key={message.id}>
-                  <td>
-                    <b>{message.patient}</b>
-                  </td>
-                  <td>{message.phone}</td>
-                  <td>
-                    <span className="badge">{message.channel || "SMS"}</span>
-                  </td>
-                  <td>{message.type}</td>
-                  <td style={{ maxWidth: 350 }}>
-                    <div style={{ wordBreak: "break-word" }}>{message.message}</div>
-                  </td>
-                  <td>{message.date}</td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        message.status === "Sent" ? "sent" : "pending"
-                      }`}
-                    >
-                      {message.status}
-                    </span>
-                  </td>
-                  <td className="actions">
-                    {message.status !== "Sent" ? (
-                      <button
-                        className="btn primary btn-sm"
-                        onClick={() => markSent(message.id)}
-                      >
-                        Send Now
-                      </button>
-                    ) : (
-                      <button
-                        title="Resend Message"
-                        onClick={() => resend(message.id)}
-                      >
-                        <RefreshCw size={15} />
-                      </button>
-                    )}
-                    <button
-                      title="Delete Record"
-                      onClick={() => remove(message.id)}
-                    >
-                      <Trash2 size={16} color="#a12929" />
-                    </button>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "36px 16px", color: "#666" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#5b0a1a", marginBottom: "6px" }}>
+                      No messages or notifications sent yet
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#888", marginBottom: "14px" }}>
+                      Automated WhatsApp report notifications and monthly retest reminders will appear here.
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((message) => (
+                  <tr key={message.id}>
+                    <td>
+                      <b>{message.patient}</b>
+                    </td>
+                    <td>{message.phone}</td>
+                    <td>
+                      <span className="badge">{message.channel || "SMS"}</span>
+                    </td>
+                    <td>{message.type}</td>
+                    <td style={{ maxWidth: 350 }}>
+                      <div style={{ wordBreak: "break-word" }}>{message.message}</div>
+                    </td>
+                    <td>{message.date}</td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          message.status === "Sent" ? "sent" : "pending"
+                        }`}
+                      >
+                        {message.status}
+                      </span>
+                    </td>
+                    <td className="actions">
+                      {message.status !== "Sent" ? (
+                        <button
+                          className="btn primary btn-sm"
+                          onClick={() => markSent(message.id)}
+                        >
+                          Send Now
+                        </button>
+                      ) : (
+                        <button
+                          title="Resend Message"
+                          onClick={() => resend(message.id)}
+                        >
+                          <RefreshCw size={15} />
+                        </button>
+                      )}
+                      <button
+                        title="Delete Record"
+                        onClick={() => remove(message.id)}
+                      >
+                        <Trash2 size={16} color="#a12929" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -4668,65 +5935,78 @@ function Billing({ onToast }) {
               </tr>
             </thead>
             <tbody>
-              {filteredBills.map((bill) => {
-                const patient = patients.find((p) => p.id === bill.patientId);
-                const balance = Number(bill.amount || 0) - Number(bill.paid || 0);
+              {filteredBills.length === 0 ? (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: "center", padding: "36px 16px", color: "#666" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#5b0a1a", marginBottom: "6px" }}>
+                      No billing invoices recorded yet
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#888", marginBottom: "14px" }}>
+                      Diagnostic billing invoices will automatically generate upon patient registration.
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredBills.map((bill) => {
+                  const patient = patients.find((p) => p.id === bill.patientId);
+                  const balance = Number(bill.amount || 0) - Number(bill.paid || 0);
 
-                return (
-                  <tr key={bill.id}>
-                    <td>
-                      <b>{bill.id}</b>
-                    </td>
-                    <td>
-                      {patient?.name}
-                      <small>{bill.patientId}</small>
-                    </td>
-                    <td>{bill.date}</td>
-                    <td>
-                      <span className="badge">{bill.mode || "Cash"}</span>
-                    </td>
-                    <td>{money(bill.amount)}</td>
-                    <td>{money(bill.paid)}</td>
-                    <td>
-                      <b style={{ color: balance > 0 ? "#b42318" : "#147344" }}>
-                        {money(balance)}
-                      </b>
-                    </td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          bill.status === "Paid" ? "paid" : "partial"
-                        }`}
-                      >
-                        {bill.status}
-                      </span>
-                    </td>
-                    <td className="actions">
-                      {bill.status !== "Paid" && (
-                        <button
-                          className="btn primary btn-sm"
-                          onClick={() => collect(bill.id)}
-                          title="Collect full payment"
+                  return (
+                    <tr key={bill.id}>
+                      <td>
+                        <b>{bill.id}</b>
+                      </td>
+                      <td>
+                        {patient?.name}
+                        <small>{bill.patientId}</small>
+                      </td>
+                      <td>{bill.date}</td>
+                      <td>
+                        <span className="badge">{bill.mode || "Cash"}</span>
+                      </td>
+                      <td>{money(bill.amount)}</td>
+                      <td>{money(bill.paid)}</td>
+                      <td>
+                        <b style={{ color: balance > 0 ? "#b42318" : "#147344" }}>
+                          {money(balance)}
+                        </b>
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            bill.status === "Paid" ? "paid" : "partial"
+                          }`}
                         >
-                          Collect
+                          {bill.status}
+                        </span>
+                      </td>
+                      <td className="actions">
+                        {bill.status !== "Paid" && (
+                          <button
+                            className="btn primary btn-sm"
+                            onClick={() => collect(bill.id)}
+                            title="Collect full payment"
+                          >
+                            Collect
+                          </button>
+                        )}
+                        <button
+                          title="View / Print Receipt"
+                          onClick={() => setSelectedReceipt(bill)}
+                        >
+                          <FileText size={16} />
                         </button>
-                      )}
-                      <button
-                        title="View / Print Receipt"
-                        onClick={() => setSelectedReceipt(bill)}
-                      >
-                        <FileText size={16} />
-                      </button>
-                      <button
-                        title="Delete Bill"
-                        onClick={() => remove(bill.id)}
-                      >
-                        <Trash2 size={16} color="#a12929" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                        <button
+                          title="Delete Bill"
+                          onClick={() => remove(bill.id)}
+                        >
+                          <Trash2 size={16} color="#a12929" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -5516,9 +6796,9 @@ function SettingsPage({ onToast }) {
   const [settings, setSettings] = useState(() =>
     read(STORAGE.settings, {
       labName: "TAZ DIAGNOSTIC",
-      phone: "040-24567890",
-      email: "info@tazdiagnostic.com",
-      address: "Hyderabad, Telangana",
+      phone: "9440985131",
+      email: "tazdiagnostic@gmail.com",
+      address: "Dr No: 8-200 RAJKUMAR SILKS, Near Raj Kumar Silks Street, Main Road, Tallapudi, Rajahmundry-534341, Andhra Pradesh",
       footerNote:
         "This laboratory report is generated electronically. Please consult your physician for clinical interpretation.",
     })
@@ -5534,19 +6814,23 @@ function SettingsPage({ onToast }) {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function handleResetDemoData() {
+  function handleStartFresh() {
     if (
       !confirm(
-        "CAUTION: This will reset all demo patients, tests, reports, and bills to their original sample state. Do you want to continue?"
+        "Clear all patients, diagnostic reports, invoices, and message history to start completely fresh from Day 1 (PAT001)? Test catalogs, doctors, branches, and lab settings will remain safe."
       )
     ) {
       return;
     }
-    seed(true);
-    onToast("All demo data reset to fresh default state!");
+    write(STORAGE.patients, []);
+    write(STORAGE.reports, []);
+    write(STORAGE.bills, []);
+    write(STORAGE.messages, []);
+    write("taz_fresh_start_v", 3);
+    onToast("System cleared! Ready for fresh patient entries from Day 1.");
     setTimeout(() => {
       window.location.reload();
-    }, 800);
+    }, 600);
   }
 
   return (
@@ -5617,6 +6901,82 @@ function SettingsPage({ onToast }) {
               }
             />
           </div>
+
+          <div className="field">
+            <label>Technician Designation Title</label>
+            <input
+              value={settings.technicianTitle || "Lab Pathologist / Technician"}
+              onChange={(e) =>
+                setSettings({ ...settings, technicianTitle: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="field">
+            <label>Technician Registration / Subtext</label>
+            <input
+              value={settings.technicianSubtext || "Authorized Signatory · Reg. #LP-88421"}
+              onChange={(e) =>
+                setSettings({ ...settings, technicianSubtext: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label>Technician Digital Signature Image</label>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "6px" }}>
+              {settings.technicianSignature ? (
+                <div style={{ padding: "6px 12px", background: "#fdf8f9", border: "1px solid #ebd4db", borderRadius: "6px", display: "flex", alignItems: "center", gap: "10px" }}>
+                  <img
+                    src={settings.technicianSignature}
+                    alt="Technician signature preview"
+                    style={{ maxHeight: "42px", maxWidth: "150px", objectFit: "contain" }}
+                  />
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      const upd = { ...settings };
+                      delete upd.technicianSignature;
+                      setSettings(upd);
+                      localStorage.removeItem("taz_technician_signature");
+                    }}
+                    style={{ color: "#b71c1c", fontSize: "11px", padding: "4px 8px" }}
+                  >
+                    <Trash2 size={13} /> Remove
+                  </button>
+                </div>
+              ) : (
+                <span style={{ fontSize: "12px", color: "#888" }}>No digital signature image uploaded.</span>
+              )}
+
+              <label className="btn" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 14px" }}>
+                <Upload size={14} />
+                {settings.technicianSignature ? "Upload New Signature" : "Upload Signature Image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const base64 = ev.target.result;
+                        setSettings((prev) => ({ ...prev, technicianSignature: base64 }));
+                        localStorage.setItem("taz_technician_signature", base64);
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            <p style={{ fontSize: "11px", color: "#777", marginTop: "5px" }}>
+              PNG or JPEG with transparent or clean white background. This signature will automatically appear on the right side of printed test report sheets.
+            </p>
+          </div>
         </div>
 
         {saved && (
@@ -5635,8 +6995,8 @@ function SettingsPage({ onToast }) {
             borderTop: "1px solid #eadde1",
           }}
         >
-          <Button danger onClick={handleResetDemoData}>
-            <RefreshCw size={15} /> Reset All Demo Data
+          <Button danger onClick={handleStartFresh}>
+            <RefreshCw size={15} /> Clear Test Data / Start Fresh (Day 1)
           </Button>
 
           <Button primary type="submit">
@@ -5722,7 +7082,7 @@ export default function App() {
   } else if (route === "/test-master") {
     page = <TestMaster onToast={showToast} />;
   } else if (route === "/reports") {
-    page = <Reports onToast={showToast} />;
+    page = <Reports navigate={navigate} onToast={showToast} />;
   } else if (route === "/messages") {
     page = <Messages onToast={showToast} />;
   } else if (route === "/billing") {

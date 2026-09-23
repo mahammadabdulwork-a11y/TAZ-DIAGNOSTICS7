@@ -17,13 +17,13 @@ const SETTINGS_KEY = "taz_company_settings";
 const DEFAULT_SETTINGS = {
   laboratoryName: "TAZ DIAGNOSTIC",
   softwareName: "TAZ COMPANY",
-  phone: "",
-  email: "",
-  address: "",
-  city: "",
-  state: "",
-  pincode: "",
-  technicianName: "Lab Technician",
+  phone: "9440985131",
+  email: "tazdiagnostic@gmail.com",
+  address: "Dr No: 8-200 RAJKUMAR SILKS, Near Raj Kumar Silks Street, Main Road",
+  city: "Tallapudi, Rajahmundry",
+  state: "Andhra Pradesh",
+  pincode: "534341",
+  technicianName: "Lab Pathologist / Technician",
   reportFooter:
     "This report is generated electronically and is valid without a physical signature.",
   reportPrefix: "REP",
@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
   showLogo: true,
   showReferenceRange: true,
   showTechnicianSignature: true,
+  technicianSignature: "",
 };
 
 function loadSettings() {
@@ -724,6 +725,57 @@ export default function Settings() {
                 update("showTechnicianSignature", v)
               }
             />
+
+            <div className="settings-field full-width" style={{ marginTop: "12px" }}>
+              <label>Technician Digital Signature Image</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", marginTop: "6px" }}>
+                {settings.technicianSignature ? (
+                  <div style={{ padding: "6px 12px", background: "#fdf8f9", border: "1px solid #ebd4db", borderRadius: "6px", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <img
+                      src={settings.technicianSignature}
+                      alt="Technician signature preview"
+                      style={{ maxHeight: "40px", maxWidth: "140px", objectFit: "contain" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        update("technicianSignature", "");
+                        localStorage.removeItem("taz_technician_signature");
+                      }}
+                      style={{ color: "#b71c1c", fontSize: "11px", padding: "4px 8px" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: "12px", color: "#888" }}>No digital signature uploaded.</span>
+                )}
+
+                <label className="btn" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 14px" }}>
+                  <Upload size={14} />
+                  {settings.technicianSignature ? "Change Signature" : "Upload Signature"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          const base64 = ev.target.result;
+                          update("technicianSignature", base64);
+                          localStorage.setItem("taz_technician_signature", base64);
+                        };
+                        reader.readAsDataURL(file);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 

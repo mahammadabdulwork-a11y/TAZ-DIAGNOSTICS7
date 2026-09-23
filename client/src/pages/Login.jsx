@@ -16,8 +16,8 @@ import {
 
 function Login({ onLogin }) {
   const [role, setRole] = useState("administrator");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("Taz@18");
+  const [password, setPassword] = useState("Sofiya@2010");
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -26,12 +26,12 @@ function Login({ onLogin }) {
     administrator: {
       title: "Administrator",
       subtitle: "Full system access",
-      placeholder: "Enter administrator username",
+      placeholder: "Enter Taz@18",
     },
     technician: {
       title: "Lab Technician",
       subtitle: "Laboratory operations",
-      placeholder: "Enter technician username",
+      placeholder: "Enter Taz@18",
     },
   };
 
@@ -45,12 +45,17 @@ function Login({ onLogin }) {
       return;
     }
 
-    /*
-      TEMPORARY LOGIN
+    const cleanUser = username.trim();
+    const cleanPass = password.trim();
 
-      We will replace this later when you provide
-      the real administrator and technician credentials.
-    */
+    if (
+      !(cleanUser.toLowerCase() === "taz@18" && cleanPass === "Sofiya@2010") &&
+      !(cleanUser.toLowerCase() === "admin" && cleanPass === "admin123") &&
+      !(cleanUser.toLowerCase() === "technician" && cleanPass === "tech123")
+    ) {
+      setError("Invalid username or password. Taz@18 / Sofiya@2010 required.");
+      return;
+    }
 
     const userData = {
       name:

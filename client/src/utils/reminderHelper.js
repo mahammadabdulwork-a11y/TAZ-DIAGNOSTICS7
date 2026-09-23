@@ -53,7 +53,7 @@ export function scheduleMonthlyRetestReminder(patientData, frequencyMonths = 1) 
     `Your monthly diagnostic retest is due on ${formatFriendlyDate(nextReminderDate)}.`,
     `Recommended Profile: ${testListStr}.`,
     `Please visit our laboratory or reply to schedule a home sample collection.`,
-    `Contact: 040-24567890 | Thank you, TAZ Diagnostic Team.`
+    `Contact: 9440985131 | Thank you, TAZ Diagnostic Team.`
   ].join("\n");
 
   const reminderRecord = {
