@@ -2990,4 +2990,399 @@ td small {
   box-shadow: 0 2px 6px rgba(139, 23, 48, 0.1);
 }
 
+/* =========================================================
+   COMPREHENSIVE RESPONSIVE DESIGN SYSTEM
+   Supports: Smartphones (<480px), Tablets (768px-1024px), Laptops & Desktops (1200px+)
+   ========================================================= */
+
+/* Backdrop overlay for mobile drawer */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 2, 6, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Base interactive touch transitions */
+.btn, .tab, .navitem, .quick, .test-picker-card {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================
+   MEDIUM SCREENS & TABLETS (max-width: 1024px)
+   ========================================================= */
+@media (max-width: 1024px) {
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stats.mini {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .branchgrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .content {
+    padding: 20px 18px;
+  }
+
+  .reportmeta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* =========================================================
+   SMARTPHONES & MOBILE SCREENS (max-width: 768px)
+   ========================================================= */
+@media (max-width: 768px) {
+  /* 1. Mobile Off-Canvas Drawer Navigation */
+  .sidebar {
+    width: 275px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2000;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.4);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .mobile-x {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 0;
+    margin-left: auto;
+    cursor: pointer;
+  }
+
+  .mobile-menu {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: #faedf1;
+    color: #5b0a1a;
+    border: 1px solid #ebd4db;
+    margin-right: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* 2. Main Fluid Container & Topbar */
+  .main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .topbar {
+    height: 60px;
+    padding: 0 14px;
+  }
+
+  .crumb {
+    font-size: 11.5px;
+    gap: 6px;
+  }
+
+  .topuser small {
+    display: none;
+  }
+
+  .content {
+    padding: 14px 12px;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* 3. Page Header & Action Buttons */
+  .pagehead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .pagehead h1 {
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  .pagehead p {
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  .headactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .headactions .btn {
+    flex: 1;
+    min-width: 130px;
+    padding: 9px 12px;
+    font-size: 11px;
+  }
+
+  /* 4. Statistics Cards */
+  .stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 9px;
+    margin-bottom: 14px;
+  }
+
+  .stats.mini {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 9px;
+  }
+
+  .stat {
+    padding: 12px 10px;
+    gap: 8px;
+    border-radius: 10px;
+  }
+
+  .staticon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .staticon svg {
+    width: 17px;
+  }
+
+  .stat span {
+    font-size: 9.5px;
+  }
+
+  .stat strong {
+    font-size: 17px;
+    margin-top: 2px;
+  }
+
+  /* 5. Grids & Cards */
+  .grid2, .grid3, .grid4 {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .branchgrid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .quickgrid {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .cardhead h3 {
+    font-size: 14px;
+  }
+
+  /* 6. Form Grids & Controls */
+  .formgrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .formactions {
+    flex-direction: column-reverse;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .formactions .btn {
+    width: 100%;
+    padding: 11px;
+    font-size: 12px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search {
+    max-width: 100% !important;
+    width: 100%;
+  }
+
+  .smallselect {
+    width: 100%;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 6px 11px;
+    font-size: 10.5px;
+  }
+
+  /* 7. Tables Horizontal Touch Scroll */
+  .tablewrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    margin: 0 -6px;
+    padding: 0 6px;
+  }
+
+  table {
+    min-width: 540px;
+  }
+
+  th, td {
+    padding: 9px 8px;
+    font-size: 10.5px;
+  }
+
+  /* 8. Modals Mobile Fit */
+  .modalshade {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh;
+    padding: 16px 14px;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .tests-picker-grid {
+    grid-template-columns: 1fr !important;
+    max-height: 260px;
+  }
+
+  .reportmeta {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px;
+  }
+
+  /* 9. Login Screen Responsive */
+  .login {
+    padding: 14px;
+  }
+
+  .loginpanel {
+    grid-template-columns: 1fr !important;
+    border-radius: 14px;
+    max-width: 420px;
+  }
+
+  .loginbrand {
+    padding: 28px 20px;
+    text-align: center;
+  }
+
+  .loginbrand h1 {
+    font-size: 22px;
+    margin-top: 10px;
+  }
+
+  .loginbrand .brandmark {
+    margin: 0 auto;
+  }
+
+  .loginform {
+    padding: 24px 16px;
+  }
+
+  .loginform h2 {
+    font-size: 20px;
+  }
+
+  .role-chips {
+    justify-content: center;
+  }
+
+  /* 10. Toast Notification Mobile Positioning */
+  .toast {
+    left: 14px;
+    right: 14px;
+    bottom: 16px;
+    justify-content: center;
+    font-size: 12px;
+    padding: 11px 16px;
+  }
+}
+
+/* =========================================================
+   EXTRA SMALL SMARTPHONES (max-width: 400px)
+   ========================================================= */
+@media (max-width: 400px) {
+  .stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats.mini {
+    grid-template-columns: 1fr !important;
+  }
+
+  .reportmeta {
+    grid-template-columns: 1fr !important;
+  }
+
+  .crumb strong {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 
